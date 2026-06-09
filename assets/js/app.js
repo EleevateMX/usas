@@ -2,7 +2,7 @@
 //  USMS Control — Bootstrap (con autenticación Supabase)
 // ===========================================================================
 import { ROUTES, initRouter, render } from './router.js';
-import { getState, setSession, loadPerfil, loadAll, esAdmin, esDirectiva } from './store.js';
+import { getState, setSession, loadPerfil, loadAll, subscribe, initRealtime } from './store.js';
 import { getSession, onAuthChange, signOut, viewLogin } from './auth.js';
 import { el, toast, modal, closeModal } from './ui.js';
 import { icon, sealImg } from './icons.js';
@@ -13,6 +13,18 @@ const elById = (id) => document.getElementById(id);
 function hideLoader() {
   const l = elById('loader');
   if (l) { l.classList.add('hide'); setTimeout(() => l.remove(), 450); }
+}
+
+// Re-render por cambios (realtime), sin interrumpir modales ni escritura.
+let renderTimer = null;
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    if (document.getElementById('modal')) return;
+    const ae = document.activeElement;
+    if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName)) return;
+    render();
+  }, 120);
 }
 
 function buildBrand() {
@@ -64,6 +76,13 @@ async function enterApp() {
   if (!location.hash || !ROUTES[location.hash.replace(/^#/, '')]) location.hash = '#/dashboard';
   render();
   hideLoader();
+
+  // Tiempo real: re-renderiza al detectar cambios (sin interrumpir edición).
+  initRealtime();
+  if (!window.__usmsRealtimeWired) {
+    window.__usmsRealtimeWired = true;
+    subscribe(scheduleRender);
+  }
 
   const toggle = elById('menu-toggle');
   const sidebar = elById('sidebar');

@@ -16,6 +16,7 @@ const EQUIPO = [
   ['bolsa_evidencias', 'Bolsa evidencias'], ['comlink', 'Comlink'], ['mascara_gas', 'Máscara de gas'],
 ];
 
+export const nuevoMariscal = () => openForm();
 let filtro = '';
 let estadoF = '';
 

@@ -4,6 +4,7 @@ import { icon } from '../icons.js';
 import { matchInfracciones, rangoSancion } from '../matcher.js';
 import { render } from '../router.js';
 
+export const nuevoCaso = () => openCaso();
 const ESTADOS = ['Abierto', 'En análisis', 'Resuelto', 'Archivado'];
 
 export function viewAsuntos() {

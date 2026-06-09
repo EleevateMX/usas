@@ -3,6 +3,7 @@ import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtMoney, fm
 import { icon } from '../icons.js';
 import { render } from '../router.js';
 
+export const nuevoMovimiento = () => openForm();
 const CATEGORIAS = ['General', 'Salarios', 'Unidades', 'Armamento', 'Multas', 'Operativos', 'Capacitaciones', 'Donaciones', 'Mantenimiento'];
 
 export function viewFinanzas() {

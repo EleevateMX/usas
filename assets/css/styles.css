@@ -582,3 +582,31 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .dist-track { height: 8px; border-radius: 5px; background: var(--navy-700); overflow: hidden; }
 .dist-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
 .dist-n { font-family: 'Oswald'; font-size: 13px; text-align: right; color: var(--muted); }
+
+/* Dashboard — acciones rápidas, alertas, feed, tesorería */
+.quick { display: flex; gap: 10px; flex-wrap: wrap; }
+.alert-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--navy-800); transition: .15s; }
+.alert-row:hover { border-color: rgba(217,181,61,.35); transform: translateX(2px); }
+.alert-ico { display: inline-flex; color: var(--muted); }
+.alert-ico.red { color: var(--red); } .alert-ico.warn { color: var(--amber); }
+.alert-txt { flex: 1; font-size: 13px; }
+
+.feed { display: flex; flex-direction: column; gap: 8px; }
+.feed-row { display: flex; align-items: center; gap: 10px; }
+.feed-ico { width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; display: grid; place-items: center; background: var(--navy-700); border: 1px solid var(--line); color: var(--muted); }
+.feed-ico.ok { color: var(--green); } .feed-ico.red { color: var(--red); } .feed-ico.warn { color: var(--amber); }
+.feed-txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #cdd6e6; font-size: 12.5px; }
+.feed-time { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+
+.fin-legend { display: flex; gap: 12px; font-size: 11px; color: var(--muted); }
+.fin-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+.fin-legend .lg::before { content: ''; width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.fin-legend .lg.ing::before { background: var(--green); }
+.fin-legend .lg.egr::before { background: var(--red); }
+.fin-chart { display: flex; align-items: flex-end; gap: 10px; height: 120px; padding-top: 8px; }
+.fin-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.fin-bars { display: flex; gap: 4px; align-items: flex-end; height: 100%; width: 100%; justify-content: center; }
+.fin-bar { width: 38%; min-height: 2px; border-radius: 4px 4px 0 0; }
+.fin-bar.ing { background: linear-gradient(180deg, #44e0a8, var(--green)); }
+.fin-bar.egr { background: linear-gradient(180deg, #f47171, var(--red)); }
+.fin-lbl { font-size: 11px; color: var(--muted); text-transform: capitalize; }

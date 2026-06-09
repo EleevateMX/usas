@@ -27,11 +27,19 @@ export const esc = (s = '') =>
 export const fmtMoney = (n) =>
   '$' + (+n || 0).toLocaleString('en-US', { minimumFractionDigits: 0 });
 
+// Fechas y horas siempre en UTC-0.
 export const fmtDate = (s) => {
   if (!s) return '—';
   try {
-    return new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString(
-      'es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    const d = new Date(String(s).length === 10 ? s + 'T00:00:00Z' : s);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  } catch { return s; }
+};
+export const fmtDateTime = (s) => {
+  if (!s) return '—';
+  try {
+    const d = new Date(s);
+    return d.toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }) + ' UTC';
   } catch { return s; }
 };
 

@@ -122,6 +122,20 @@ export async function loadAll() {
   notify();
 }
 
+// ------------------------------ Tiempo real --------------------------------
+let realtimeChannel = null;
+let reloadTimer = null;
+export function initRealtime() {
+  if (realtimeChannel) return;
+  realtimeChannel = supabase
+    .channel('usms-db')
+    .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+      clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => { loadAll().catch(() => {}); }, 450);
+    })
+    .subscribe();
+}
+
 // ------------------------------ Sesión / perfil ----------------------------
 export function setSession(session) { state.session = session; }
 export async function loadPerfil() {
