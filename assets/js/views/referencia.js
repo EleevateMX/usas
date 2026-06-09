@@ -38,7 +38,66 @@ const DIVISIONES = [
   ['TD', 'Training Division', 'Formación de aspirantes (DUSMT), academia y examen AMTP. FTDs (Field Training Deputies). Unidad Verus.'],
   ['SGU', 'Suppression Gang Unit', 'Supresión de bandas y crimen organizado. Comparte la unidad Speedo con la IOD.'],
   ['RAD', 'Resources Administration Division', 'Administración de recursos y finanzas; sanciones económicas por mal uso de material.'],
+  ['OPA', 'Office of Public Affairs', 'Relaciones públicas e imagen del USMS; frecuencias y unidades propias.'],
   ['OPR', 'Office of Professional Responsibility (Internal Affairs)', 'Asuntos Internos: tramita denuncias e investiga la conducta de los miembros (Arts. 92-104).'],
+];
+
+// --------------------------------- Armamento -------------------------------
+const ARM_NOLETAL = [
+  ['Taser X-26P', 'DUSMT', 'Alcance 5 m · 50.000 V'],
+  ['Cachiporra PR-24', 'DUSMT', 'Porra retráctil'],
+  ['Escopeta Less-Lethal (Bean Bag)', 'DUSM II (cert.) / Clave Brawl', 'Remington 870 BeanBag'],
+];
+const ARM_LETAL = [
+  ['Pistola H&K P2000', 'DUSMT', 'Arma principal del deputy'],
+  ['Escopeta Remington 870', 'DUSMT', 'Calibre 12'],
+  ['MP5 (H&K MP5A4)', 'DUSM I', 'Machine pistol 9 mm'],
+  ['M4 (H&K HK416)', 'DUSM III / SOG', 'Rifle (SOG: solo en labores SOG)'],
+  ['FN SCAR', 'SDUSM I', 'Rifle modular'],
+  ['Escopeta SPAS-12', 'SDUSM I', '12 Gauge'],
+  ['Sniper Barret M82', 'SOG certificado', 'Antimaterial'],
+];
+const ARM_EQUIPO = [
+  ['Linterna Maglite ML100', 'DUSMT'],
+  ['Tablet Gubernamental', 'DUSM II'],
+  ['Walkie-Talkie / ComLink', 'Según labor'],
+];
+const ESCALADO = [
+  'Presencia estándar (uniforme, identificación, postura profesional).',
+  'Órdenes verbales y comunicación clara.',
+  'Control físico leve (agarres, esposamiento con cooperación).',
+  'Técnicas de control (toma al suelo, llaves, presión controlada).',
+  'Armas no letales (taser, bean bag, gas OC, PR-24).',
+  'Fuerza potencialmente letal (solo ante amenaza inminente de muerte o daño grave).',
+];
+
+// ------------------------------ Comunicaciones -----------------------------
+const CODIGOS10 = [
+  ['10-04', 'Afirmativo'], ['10-05', 'Negativo'], ['10-07', 'Salir de servicio'],
+  ['10-08', 'Entrar de servicio'], ['10-09', 'Repetir mensaje'], ['10-14', 'Escolta'],
+  ['10-15', 'Traslado de prisionero'], ['10-19', 'En dirección a'], ['10-20', 'Posición actual'],
+  ['10-40', 'Situación actual'], ['10-48', 'Mantenimiento de unidad'], ['10-50', 'Sintonizar frecuencia'],
+  ['10-61', 'Pausa breve / descanso'],
+];
+const CLAVES = [
+  ['Código 3', 'Emergencia: luces y sirenas'], ['Código 4', 'Situación controlada / finalizada'],
+  ['Código 5', 'Vigilancia / guardia'], ['Código 9', 'Fugitivo en visual'],
+  ['Código 10', 'Despejar frecuencia'], ['Clave 0', 'Disparos en radio de acción'],
+  ['Clave Alpha', 'Asalto al convoy'], ['Clave Robert', 'Solicitud de fuerza letal'],
+  ['Clave Brawl', 'Motín / disturbio en la BCF'],
+];
+const NOMENCL = [
+  ['USMS', 'Ordinaria'], ['STF', 'Supervisora'], ['JPATS', 'Transporte de prisioneros'],
+  ['SCOT', 'Blindada VIP'], ['AIR', 'Aérea'], ['SEA', 'Acuática'], ['MARY', 'Alta velocidad'],
+  ['TOW', 'Grúas'], ['INTEL', 'Inteligencia'], ['ZULU', 'Civil encubierta'],
+  ['MIKE', 'SOG especializada'], ['TD / OPA / RAD', 'De división'],
+];
+const ABREV = [
+  ['IC', 'Incident Commander'], ['CC', 'Communications Center'], ['MDC', 'Mobile Data Computer'],
+  ['FDB', 'Fugitives Data Base'], ['BYC', 'Búsqueda y Captura'], ['BOLO', 'Be On the Look Of'],
+  ['PIT', 'Pursuit Intervention Technique'], ['LEO', 'Law Enforcement Officer'],
+  ['LSC', 'Los Santos Court'], ['BCF', 'Bolingbroke Correctional Facility'],
+  ['PDA', 'Personal Digital Assistant (chat TS3)'], ['TAC', 'Frecuencia táctica'],
 ];
 
 const UNIDADES = [
@@ -151,6 +210,35 @@ export function viewReferencia() {
       ]),
     ]),
 
+    // Armamento
+    el('div', { class: 'card' }, [
+      h3('shield', 'Armamento y equipo'),
+      el('div', { class: 'arm-cols' }, [
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'No letal'), armTable(ARM_NOLETAL)]),
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Letal'), armTable(ARM_LETAL)]),
+      ]),
+      el('div', { class: 'arm-cols' }, [
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Equipo estándar'),
+          el('div', { class: 'kv-grid' }, ARM_EQUIPO.map((e) => kvRow(e[0], e[1])))]),
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Escalado del uso de la fuerza'),
+          el('ol', { class: 'escalado' }, ESCALADO.map((s) => el('li', {}, s)))]),
+      ]),
+      el('p', { class: 'muted small' }, 'Certificaciones: se solicitan al SOG por Contacto Interno. Pérdidas: material básico = sanción gris; armamento crítico = sanción verde; la reincidencia agrava.'),
+    ]),
+
+    // Comunicaciones
+    el('div', { class: 'card' }, [
+      h3('flag', 'Comunicaciones'),
+      el('div', { class: 'comm-cols' }, [
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Códigos 10'), el('div', { class: 'kv-grid mono' }, CODIGOS10.map((c) => kvRow(c[0], c[1])))]),
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Códigos y claves'), el('div', { class: 'kv-grid' }, CLAVES.map((c) => kvRow(c[0], c[1])))]),
+      ]),
+      el('div', { class: 'comm-cols' }, [
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Nomenclatura de unidades'), el('div', { class: 'kv-grid' }, NOMENCL.map((c) => kvRow(c[0], c[1])))]),
+        el('div', {}, [el('h4', { class: 'arm-h' }, 'Abreviaciones'), el('div', { class: 'kv-grid' }, ABREV.map((c) => kvRow(c[0], c[1])))]),
+      ]),
+    ]),
+
     // Balizas
     el('div', { class: 'card' }, [
       h3('flag', 'Balizas (códigos de color)'),
@@ -160,4 +248,17 @@ export function viewReferencia() {
       ]))),
     ]),
   ]);
+}
+
+function armTable(rows) {
+  return el('table', { class: 'tbl mini' }, [
+    el('tbody', {}, rows.map((r) => el('tr', {}, [
+      el('td', {}, el('strong', {}, r[0])),
+      el('td', {}, el('span', { class: 'badge rango' }, r[1])),
+      r[2] ? el('td', { class: 'muted small' }, r[2]) : null,
+    ]))),
+  ]);
+}
+function kvRow(k, v) {
+  return el('div', { class: 'kv' }, [el('span', { class: 'kv-k' }, k), el('span', { class: 'kv-v' }, v)]);
 }
