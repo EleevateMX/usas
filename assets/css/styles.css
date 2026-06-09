@@ -796,3 +796,40 @@ a.tema-chip:hover, a.portal-tema:hover { border-color: var(--gold); }
 .portal-locked { display: flex; align-items: center; gap: 8px; color: var(--muted); justify-content: center; margin-top: 16px; font-size: 14px; }
 .portal-notas { background: var(--navy-800); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
 .portal-notas .fb-head { color: var(--gold-soft); margin-bottom: 8px; }
+
+/* =========================================================================
+   Aula DUSMT (login/anuncios/examen/guía) + anuncios del panel
+   ========================================================================= */
+.aula-tabs { display: flex; gap: 6px; background: var(--navy-800); border: 1px solid var(--line); border-radius: 10px; padding: 4px; margin: 4px 0 12px; }
+.aula-tab { flex: 1; background: transparent; border: 0; color: var(--muted); font-family: inherit; font-weight: 600; font-size: 14px; padding: 9px; border-radius: 7px; cursor: pointer; }
+.aula-tab.on { background: var(--navy-700); color: var(--gold); }
+
+.portal-h { display: flex; align-items: center; gap: 8px; margin: 18px 0 10px; color: var(--gold-soft); font-size: 15px; }
+
+.portal-examen { border-radius: 14px; padding: 14px 16px; margin: 4px 0 16px; border: 1px solid var(--line); background: var(--navy-850); }
+.portal-examen .pe-head { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.portal-examen.disp { border-color: rgba(217,181,61,.5); background: rgba(217,181,61,.08); }
+.portal-examen.disp .pe-head { color: var(--gold); }
+.portal-examen.disp .btn { margin-top: 8px; }
+.portal-examen.ok { border-color: rgba(52,211,153,.4); }
+.portal-examen.ok .pe-head { color: #8ff0cf; }
+.portal-examen.no .pe-head { color: #ffb4b4; }
+
+.portal-guia { margin: 10px 0 4px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.portal-guia .guia-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--gold-soft); }
+.portal-guia p { margin: 4px 0 0; color: var(--text); white-space: pre-wrap; }
+
+.portal-repaso { background: var(--navy-800); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.repaso-body { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.repaso-item { border-left: 2px solid var(--gold); padding-left: 10px; }
+.repaso-item p { margin: 4px 0 0; white-space: pre-wrap; }
+
+.seg-item.fijado, .anuncio.fijado { border-color: rgba(217,181,61,.45); }
+
+/* Anuncios (panel TD) */
+.anuncios { display: flex; flex-direction: column; gap: 10px; }
+.anuncio { border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; background: var(--navy-850); }
+.anuncio-txt { margin: 6px 0; white-space: pre-wrap; }
+
+.fallo-row.sesgo.clic { cursor: pointer; border-radius: 8px; padding: 4px 6px; }
+.fallo-row.sesgo.clic:hover { background: var(--navy-700); }

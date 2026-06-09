@@ -4,7 +4,8 @@
 //  DUSMT y les dan seguimiento. El portal de estudio público es academia.html.
 // ===========================================================================
 import { getState, esTD, addModulo, updateModulo, removeModulo,
-  addAspirante, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento } from '../store.js';
+  addAspirante, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
+  addAnuncio, updateAnuncio, removeAnuncio } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate, fmtDateTime } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -34,6 +35,7 @@ export function viewAcademia() {
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Programa Académico — Training Division'),
       gestor ? el('div', { class: 'row gap' }, [
+        el('button', { class: 'btn ghost ic', onClick: () => openAnuncio() }, [icon('plus', 15), 'Anuncio']),
         el('button', { class: 'btn navy ic', onClick: () => openAspirante() }, [icon('plus', 15), 'Aspirante']),
         el('button', { class: 'btn gold ic', onClick: () => openModulo() }, [icon('plus', 15), 'Módulo / día']),
       ]) : el('span', { class: 'muted small' }, 'Vista de solo lectura'),
@@ -71,6 +73,15 @@ export function viewAcademia() {
       kpi('Aspirantes', s.tdAspirantes.length, 'en el portal', '', 'personal'),
       kpi('Progreso medio', progPromedio + '%', 'de los aspirantes', 'green', 'award'),
       kpi('Seguimientos', s.tdSeguimiento.length, 'notas registradas', '', 'file'),
+    ]),
+
+    // Anuncios
+    el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('alert', 16), 'Anuncios de la academia']),
+        el('span', { class: 'muted small' }, 'visibles para los aspirantes en su portal')]),
+      s.tdAnuncios.length
+        ? el('div', { class: 'anuncios' }, s.tdAnuncios.map((an) => anuncioRow(an, gestor)))
+        : el('p', { class: 'muted' }, gestor ? 'Publica un anuncio para apoyar lo que sale en Discord.' : 'Sin anuncios.'),
     ]),
 
     // Programa (módulos)
@@ -124,9 +135,10 @@ function moduloRow(m, gestor) {
 function aspiranteRow(a, s, pct, gestor) {
   const notas = s.tdSeguimiento.filter((x) => x.aspiranteId === a.id).length;
   return el('tr', {}, [
-    el('td', {}, [el('strong', {}, a.nombre)]),
+    el('td', {}, [el('strong', {}, a.nombre), a.registrado ? null : el('span', { class: 'muted xsmall' }, ' · sin registrar')]),
     el('td', { class: 'muted small' }, a.discord || '—'),
-    el('td', {}, badge(a.estado, a.estado === 'Aprobado' ? 'ok' : a.estado === 'Baja' ? 'red' : 'warn')),
+    el('td', {}, [badge(a.estado, a.estado === 'Aprobado' ? 'ok' : a.estado === 'Baja' ? 'red' : 'warn'),
+      a.examenHabilitado ? badge('examen', 'gold') : null]),
     el('td', {}, el('div', { class: 'prog-cell' }, [
       el('div', { class: 'prog-bar' }, [el('div', { class: 'prog-fill', style: `width:${pct}%` })]),
       el('span', { class: 'muted small' }, `${pct}%`),
@@ -168,6 +180,24 @@ function openSeguimiento(a) {
     el('option', { value: e, ...(e === a.estado ? { selected: '' } : {}) }, e)));
   estadoSel.addEventListener('change', async () => { try { await updateAspirante(a.id, { estado: estadoSel.value }); toast('Estado actualizado'); render(); } catch (e) { toast(e.message, 'err'); } });
 
+  // Asignación de examen al aspirante
+  const sesSel = el('select', {}, [el('option', { value: '' }, '— Academia del examen —'),
+    ...s.examenSesiones.map((x) => el('option', { value: x.id, ...(x.id === a.examenSesionId ? { selected: '' } : {}) }, `${x.nombre}${x.activa ? '' : ' (cerrada)'}`))]);
+  const habBtn = el('button', { class: 'btn ' + (a.examenHabilitado ? 'ghost' : 'gold') + ' small' }, a.examenHabilitado ? 'Quitar examen' : 'Habilitar examen');
+  habBtn.addEventListener('click', async () => {
+    try {
+      if (a.examenHabilitado) await updateAspirante(a.id, { examenHabilitado: false });
+      else { if (!sesSel.value) return toast('Elige la academia del examen', 'err'); await updateAspirante(a.id, { examenSesionId: sesSel.value, examenHabilitado: true }); }
+      toast('Examen actualizado'); closeModal(); openSeguimiento(getState().tdAspirantes.find((x) => x.id === a.id) || a); render();
+    } catch (e) { toast(e.message, 'err'); }
+  });
+  const examenBlock = el('div', { class: 'card sub' }, [
+    el('div', { class: 'row between' }, [el('h4', { style: 'margin:0' }, 'Examen del aspirante'),
+      a.examenHabilitado ? badge('habilitado', 'ok') : badge('no asignado', '')]),
+    el('div', { class: 'row gap', style: 'margin-top:8px' }, [sesSel, habBtn]),
+    el('p', { class: 'muted xsmall' }, 'Al habilitarlo, el aspirante verá el botón para presentar el examen en su portal.'),
+  ]);
+
   const lista = notas.length
     ? el('div', { class: 'seg-list' }, notas.map((n) => el('div', { class: 'seg-item' }, [
         el('div', { class: 'row between' }, [
@@ -184,9 +214,11 @@ function openSeguimiento(a) {
 
   const body = el('div', { class: 'seg' }, [
     el('div', { class: 'row between' }, [
-      el('div', {}, [el('strong', {}, a.nombre), el('span', { class: 'muted small' }, ` · ${a.discord}`)]),
+      el('div', {}, [el('strong', {}, a.nombre),
+        el('div', { class: 'muted small' }, `${a.discord}${a.registrado ? ' · HASH ' + a.hash : ' · sin registrar'}`)]),
       gestor ? el('label', { class: 'row gap', style: 'align-items:center' }, [el('span', { class: 'muted small' }, 'Estado'), estadoSel]) : badge(a.estado, 'warn'),
     ]),
+    gestor ? examenBlock : null,
     gestor ? el('div', { class: 'card sub' }, [
       el('h4', {}, 'Registrar seguimiento'),
       el('div', { class: 'form-grid compact' }, [
@@ -212,6 +244,7 @@ function openModulo(m = null) {
   f.liberado = el('input', { type: 'checkbox', ...(d.liberado ? { checked: '' } : {}) });
   const temasTxt = (d.temas || []).map((t) => `${t.nombre} | ${t.url || ''}`).join('\n');
   f.temas = el('textarea', { rows: '4', placeholder: 'Un tema por línea:\nNombre del manual | https://enlace' }, temasTxt);
+  f.guia = el('textarea', { rows: '3', placeholder: 'Resumen / repaso del día (se muestra en el portal de estudio).' }, d.guia || '');
 
   async function save() {
     const titulo = f.titulo.value.trim();
@@ -220,7 +253,7 @@ function openModulo(m = null) {
       const [nombre, url] = l.split('|').map((x) => x.trim());
       return { nombre: nombre || l, url: url || '' };
     });
-    const data = { titulo, orden: +f.orden.value || 1, descripcion: f.descripcion.value.trim(), temas, liberado: f.liberado.checked };
+    const data = { titulo, orden: +f.orden.value || 1, descripcion: f.descripcion.value.trim(), temas, guia: f.guia.value.trim(), liberado: f.liberado.checked };
     try {
       if (edit) { await updateModulo(m.id, data); toast('Módulo actualizado'); }
       else { await addModulo(data); toast('Módulo creado'); }
@@ -234,12 +267,56 @@ function openModulo(m = null) {
     el('label', { class: 'field row gap', style: 'align-items:center' }, [f.liberado, el('span', {}, 'Liberado a los DUSMT')]),
     el('label', { class: 'field full' }, [el('span', {}, 'Descripción'), f.descripcion]),
     el('label', { class: 'field full' }, [el('span', {}, 'Temas / manuales (nombre | enlace)'), f.temas]),
+    el('label', { class: 'field full' }, [el('span', {}, 'Guía de estudio / repaso del día'), f.guia]),
     el('div', { class: 'row gap end full' }, [
       el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
       el('button', { class: 'btn gold', onClick: save }, edit ? 'Guardar' : 'Crear'),
     ]),
   ]);
   modal(edit ? 'Editar módulo' : 'Nuevo módulo / día', body, { wide: true });
+}
+
+// ------------------------------ Anuncios -----------------------------------
+function anuncioRow(an, gestor) {
+  return el('div', { class: 'anuncio' + (an.fijado ? ' fijado' : '') }, [
+    el('div', { class: 'row between' }, [
+      el('div', {}, [an.fijado ? badge('Fijado', 'gold') : null, el('strong', {}, ' ' + an.titulo)]),
+      el('span', { class: 'muted xsmall' }, fmtDateTime(an.fecha)),
+    ]),
+    an.contenido ? el('p', { class: 'anuncio-txt' }, an.contenido) : null,
+    el('div', { class: 'row between' }, [
+      el('span', { class: 'muted xsmall' }, an.autor || '—'),
+      gestor ? el('div', { class: 'nowrap' }, [
+        el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openAnuncio(an) }, [icon('edit', 14)]),
+        el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
+          confirmDialog('¿Eliminar este anuncio?', async () => { try { await removeAnuncio(an.id); toast('Anuncio eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 14)]),
+      ]) : null,
+    ]),
+  ]);
+}
+
+function openAnuncio(an = null) {
+  const edit = !!an; const d = an || {}; const f = {};
+  const yo = getState().perfil?.nombre || getState().perfil?.email || '';
+  f.titulo = el('input', { value: d.titulo || '', placeholder: 'Título del anuncio' });
+  f.contenido = el('textarea', { rows: '4', placeholder: 'Contenido del anuncio (apoyo a lo publicado en Discord).' }, d.contenido || '');
+  f.fijado = el('input', { type: 'checkbox', ...(d.fijado ? { checked: '' } : {}) });
+  async function save() {
+    if (!f.titulo.value.trim()) return toast('Ponle un título', 'err');
+    const data = { titulo: f.titulo.value.trim(), contenido: f.contenido.value.trim(), fijado: f.fijado.checked, autor: edit ? d.autor : yo };
+    try { if (edit) await updateAnuncio(an.id, data); else await addAnuncio(data); toast('Anuncio guardado'); closeModal(); render(); }
+    catch (e) { toast(e.message, 'err'); }
+  }
+  const body = el('div', { class: 'form-grid' }, [
+    el('label', { class: 'field full' }, [el('span', {}, 'Título'), f.titulo]),
+    el('label', { class: 'field full' }, [el('span', {}, 'Contenido'), f.contenido]),
+    el('label', { class: 'field row gap full', style: 'align-items:center' }, [f.fijado, el('span', {}, 'Fijar arriba')]),
+    el('div', { class: 'row gap end full' }, [
+      el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
+      el('button', { class: 'btn gold', onClick: save }, edit ? 'Guardar' : 'Publicar'),
+    ]),
+  ]);
+  modal(edit ? 'Editar anuncio' : 'Nuevo anuncio', body, { wide: true });
 }
 
 // ----------------------------- Alta de aspirante ---------------------------

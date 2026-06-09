@@ -52,6 +52,14 @@ export function viewTraining() {
   const masFalladas = Object.values(stat).map((x) => ({ ...x, pct: Math.round((x.fallos / x.veces) * 100) }))
     .filter((x) => x.fallos > 0).sort((a, b) => b.pct - a.pct || b.veces - a.veces).slice(0, 8);
 
+  // Calidad del banco: la respuesta correcta no debe ser la más larga (pista obvia).
+  const sesgoLargo = s.examenPreguntas.filter((q) => q.activa && Array.isArray(q.opciones)).map((q) => {
+    const ls = q.opciones.map((o) => (o || '').length);
+    const correctaLen = ls[q.correcta] || 0;
+    const maxOtra = Math.max(0, ...ls.filter((_, i) => i !== q.correcta));
+    return { q, margen: correctaLen - maxOtra };
+  }).filter((x) => x.margen >= 14).sort((a, b) => b.margen - a.margen).slice(0, 12);
+
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Training Division'),
@@ -109,6 +117,18 @@ export function viewTraining() {
         ]),
         el('div', { class: 'fallo-bar' }, [el('div', { class: 'fallo-fill', style: `width:${x.pct}%` })]),
         el('span', { class: 'fallo-n muted small' }, `${x.fallos}/${x.veces} · ${x.pct}%`),
+      ]))),
+    ]) : null,
+
+    // Calidad del banco — respuesta correcta demasiado larga
+    sesgoLargo.length ? el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('scan', 16), 'Revisar redacción — respuesta correcta muy larga']),
+        el('span', { class: 'muted small' }, `${sesgoLargo.length} ${sesgoLargo.length === 1 ? 'pregunta' : 'preguntas'}`)]),
+      el('p', { class: 'muted small' }, 'En estas, la opción correcta es bastante más larga que las demás: el aspirante puede acertar por intuición. Equilibra la longitud de las opciones.'),
+      el('div', { class: 'fallos' }, sesgoLargo.map(({ q, margen }) => el('div', { class: 'fallo-row sesgo' + (esDirectiva() ? ' clic' : ''), ...(esDirectiva() ? { onClick: () => openPregunta(q) } : {}) }, [
+        el('div', { class: 'fallo-main' }, [badge(CATS[q.categoria] || q.categoria, 'rango'),
+          el('span', { class: 'fallo-enun' }, q.enunciado.length > 80 ? q.enunciado.slice(0, 80) + '…' : q.enunciado)]),
+        el('span', { class: 'fallo-n muted small' }, `+${margen} car.`),
       ]))),
     ]) : null,
 

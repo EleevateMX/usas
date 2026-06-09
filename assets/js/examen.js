@@ -7,7 +7,10 @@ import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
 import { sealImg, icon } from './icons.js';
 
-const SLUG = new URLSearchParams(location.search).get('s') || '';
+const PARAMS = new URLSearchParams(location.search);
+const SLUG = PARAMS.get('s') || '';
+const PRE_NOMBRE = PARAMS.get('n') || '';
+const PRE_DISCORD = PARAMS.get('d') || '';
 
 const app = () => document.getElementById('examen-app');
 
@@ -20,8 +23,8 @@ function montar(node) { const a = app(); a.innerHTML = ''; a.append(node); }
 
 // ------------------------------- Registro ----------------------------------
 function vistaRegistro() {
-  const nombre = el('input', { type: 'text', placeholder: 'Nombre y apellido del personaje' });
-  const discord = el('input', { type: 'text', placeholder: 'Usuario de Discord' });
+  const nombre = el('input', { type: 'text', placeholder: 'Nombre y apellido del personaje', value: PRE_NOMBRE });
+  const discord = el('input', { type: 'text', placeholder: 'Usuario de Discord', value: PRE_DISCORD });
   const btn = el('button', { class: 'btn gold full', onClick: iniciar }, 'Comenzar examen');
 
   async function iniciar() {

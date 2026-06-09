@@ -25,6 +25,7 @@ let state = {
   tdAspirantes: [],
   tdSeguimiento: [],
   tdProgreso: [],
+  tdAnuncios: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -94,11 +95,16 @@ const mapDivMiembro = (r) => ({
 });
 const mapModulo = (r) => ({
   id: r.id, orden: r.orden, titulo: r.titulo, descripcion: r.descripcion || '',
-  temas: r.temas || [], liberado: r.liberado, fecha: r.created_at,
+  temas: r.temas || [], guia: r.guia || '', liberado: r.liberado, fecha: r.created_at,
 });
 const mapAspirante = (r) => ({
-  id: r.id, nombre: r.nombre, discord: r.discord, sesionId: r.sesion_id,
-  estado: r.estado, fecha: r.created_at,
+  id: r.id, nombre: r.nombre, discord: r.discord, hash: r.hash || '', sesionId: r.sesion_id,
+  estado: r.estado, examenSesionId: r.examen_sesion_id, examenHabilitado: r.examen_habilitado,
+  registrado: !!r.hash, fecha: r.created_at,
+});
+const mapAnuncio = (r) => ({
+  id: r.id, titulo: r.titulo, contenido: r.contenido || '', autor: r.autor || '',
+  fijado: r.fijado, fecha: r.created_at,
 });
 const mapSeguimiento = (r) => ({
   id: r.id, aspiranteId: r.aspirante_id, autor: r.autor || '', moduloOrden: r.modulo_orden,
@@ -123,7 +129,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg, tdAnun] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -138,6 +144,7 @@ export async function loadAll() {
     supabase.from('td_aspirantes').select('*').order('created_at', { ascending: false }),
     supabase.from('td_seguimiento').select('*').order('created_at', { ascending: false }),
     supabase.from('td_progreso').select('*'),
+    supabase.from('td_anuncios').select('*').order('fijado', { ascending: false }).order('created_at', { ascending: false }),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -153,6 +160,7 @@ export async function loadAll() {
   state.tdAspirantes = (tdAsp.data || []).map(mapAspirante);
   state.tdSeguimiento = (tdSeg.data || []).map(mapSeguimiento);
   state.tdProgreso = (tdProg.data || []).map(mapProgreso);
+  state.tdAnuncios = (tdAnun.data || []).map(mapAnuncio);
   computeContadores();
   notify();
 }
@@ -466,14 +474,15 @@ export async function darDeBaja(id, { estado, fechaSalida, motivo }) {
 export async function addModulo(m) {
   const orden = m.orden || ((state.tdModulos.at(-1)?.orden || 0) + 1);
   const { error } = await supabase.from('td_modulos').insert({
-    orden, titulo: m.titulo, descripcion: m.descripcion || '', temas: m.temas || [], liberado: !!m.liberado,
+    orden, titulo: m.titulo, descripcion: m.descripcion || '', temas: m.temas || [],
+    guia: m.guia || '', liberado: !!m.liberado,
   });
   if (error) throw error;
   await loadAll();
 }
 export async function updateModulo(id, patch) {
   const row = {};
-  for (const k of ['orden', 'titulo', 'descripcion', 'temas', 'liberado']) if (k in patch) row[k] = patch[k];
+  for (const k of ['orden', 'titulo', 'descripcion', 'temas', 'guia', 'liberado']) if (k in patch) row[k] = patch[k];
   const { error } = await supabase.from('td_modulos').update(row).eq('id', id);
   if (error) throw error;
   await loadAll();
@@ -496,7 +505,29 @@ export async function updateAspirante(id, patch) {
   if ('nombre' in patch) row.nombre = patch.nombre;
   if ('estado' in patch) row.estado = patch.estado;
   if ('sesionId' in patch) row.sesion_id = patch.sesionId || null;
+  if ('examenSesionId' in patch) row.examen_sesion_id = patch.examenSesionId || null;
+  if ('examenHabilitado' in patch) row.examen_habilitado = patch.examenHabilitado;
   const { error } = await supabase.from('td_aspirantes').update(row).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+export async function addAnuncio(a) {
+  const { error } = await supabase.from('td_anuncios').insert({
+    titulo: a.titulo, contenido: a.contenido || '', autor: a.autor || '', fijado: !!a.fijado,
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateAnuncio(id, patch) {
+  const row = {};
+  for (const k of ['titulo', 'contenido', 'autor', 'fijado']) if (k in patch) row[k] = patch[k];
+  const { error } = await supabase.from('td_anuncios').update(row).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeAnuncio(id) {
+  const { error } = await supabase.from('td_anuncios').delete().eq('id', id);
   if (error) throw error;
   await loadAll();
 }
