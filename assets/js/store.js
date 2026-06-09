@@ -19,7 +19,7 @@ let state = {
   perfiles: [],
   examenPreguntas: [],
   examenIntentos: [],
-  examenConfig: { faciles: 10, medias: 10, dificiles: 6, duracion_min: 20 },
+  examenSesiones: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -72,7 +72,12 @@ const mapPregunta = (r) => ({
 const mapIntento = (r) => ({
   id: r.id, nombre: r.nombre, discord: r.discord, fecha: r.created_at,
   puntaje: Number(r.puntaje) || 0, total: r.total || 0, aprobado: r.aprobado,
-  estado: r.estado, duracionSeg: r.duracion_seg,
+  estado: r.estado, duracionSeg: r.duracion_seg, sesionId: r.sesion_id,
+});
+const mapSesion = (r) => ({
+  id: r.id, slug: r.slug, nombre: r.nombre, tipo: r.tipo,
+  faciles: r.faciles, medias: r.medias, dificiles: r.dificiles,
+  duracionMin: r.duracion_min, activa: r.activa, fecha: r.created_at,
 });
 
 // Recalcula advertencias/strikes vigentes de cada persona desde el historial.
@@ -90,7 +95,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, config] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -98,8 +103,8 @@ export async function loadAll() {
     supabase.from('sanciones').select('*').order('fecha', { ascending: false }),
     supabase.from('perfiles').select('*').order('created_at'),
     supabase.from('examen_preguntas').select('*').order('categoria'),
-    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg').order('created_at', { ascending: false }),
-    supabase.from('examen_config').select('*').eq('id', 1).single(),
+    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id').order('created_at', { ascending: false }),
+    supabase.from('examen_sesiones').select('*').order('created_at', { ascending: false }),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -109,7 +114,7 @@ export async function loadAll() {
   state.perfiles = (perfiles.data || []).map(mapPerfil);
   state.examenPreguntas = (preguntas.data || []).map(mapPregunta);
   state.examenIntentos = (intentos.data || []).map(mapIntento);
-  if (config.data) state.examenConfig = config.data;
+  state.examenSesiones = (sesiones.data || []).map(mapSesion);
   computeContadores();
   notify();
 }
@@ -334,11 +339,24 @@ export async function removeIntento(id) {
   if (error) throw error;
   await loadAll();
 }
-export async function updateExamenConfig(cfg) {
-  const { error } = await supabase.from('examen_config').update({
-    faciles: cfg.faciles, medias: cfg.medias, dificiles: cfg.dificiles,
-    duracion_min: cfg.duracion_min, updated_at: new Date().toISOString(),
-  }).eq('id', 1);
+export async function addSesion(s) {
+  const { error } = await supabase.from('examen_sesiones').insert({
+    nombre: s.nombre, tipo: s.tipo, faciles: s.faciles, medias: s.medias,
+    dificiles: s.dificiles, duracion_min: s.duracionMin, activa: true,
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateSesion(id, s) {
+  const patch = {};
+  for (const k of ['nombre', 'tipo', 'faciles', 'medias', 'dificiles', 'activa']) if (k in s) patch[k] = s[k];
+  if ('duracionMin' in s) patch.duracion_min = s.duracionMin;
+  const { error } = await supabase.from('examen_sesiones').update(patch).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeSesion(id) {
+  const { error } = await supabase.from('examen_sesiones').delete().eq('id', id);
   if (error) throw error;
   await loadAll();
 }

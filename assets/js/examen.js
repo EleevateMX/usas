@@ -7,6 +7,8 @@ import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
 import { marshalBadge, icon } from './icons.js';
 
+const SLUG = new URLSearchParams(location.search).get('s') || '';
+
 const app = () => document.getElementById('examen-app');
 
 let estado = {
@@ -27,7 +29,7 @@ function vistaRegistro() {
     btn.disabled = true; btn.textContent = 'Preparando…';
     try {
       const { data, error } = await supabase.functions.invoke('examen-iniciar', {
-        body: { nombre: nombre.value.trim(), discord: discord.value.trim() },
+        body: { nombre: nombre.value.trim(), discord: discord.value.trim(), slug: SLUG },
       });
       if (error) throw new Error((await error.context?.json?.())?.error || error.message);
       if (data?.error) throw new Error(data.error);
@@ -151,4 +153,16 @@ window.addEventListener('beforeunload', (e) => {
   if (estado.intentoId && !estado.enviando && estado.restante > 0) { e.preventDefault(); e.returnValue = ''; }
 });
 
-document.addEventListener('DOMContentLoaded', vistaRegistro);
+function vistaSinEnlace() {
+  montar(el('div', { class: 'ex-card' }, [
+    el('div', { class: 'ex-brand' }, [marshalBadge(70),
+      el('div', { class: 'brand-title xl' }, 'TRAINING DIVISION')]),
+    el('div', { class: 'ex-result no' }, [
+      el('div', { class: 'ex-res-ico' }, [icon('close', 36)]),
+      el('h2', {}, 'ENLACE INVÁLIDO'),
+      el('p', { class: 'muted small center' }, 'Este enlace no corresponde a ninguna academia. Solicita a la Training Division el enlace del examen vigente.'),
+    ]),
+  ]));
+}
+
+document.addEventListener('DOMContentLoaded', () => { SLUG ? vistaRegistro() : vistaSinEnlace(); });

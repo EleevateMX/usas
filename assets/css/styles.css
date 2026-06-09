@@ -455,3 +455,9 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .cfg-tier { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--navy-850); }
 .cfg-tier input { text-align: center; font-family: 'Oswald'; font-size: 18px; }
 @media (max-width: 760px) { .cfg-grid { grid-template-columns: 1fr 1fr; } }
+
+/* Training — academias */
+.academia { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--navy-850); display: flex; flex-direction: column; gap: 10px; }
+.academia.cerrada { opacity: .6; }
+.aca-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aca-top .badge { margin-left: 6px; }

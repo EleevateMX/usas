@@ -1,4 +1,5 @@
-import { getState, esDirectiva, addPregunta, updatePregunta, removePregunta, removeIntento, updateExamenConfig } from '../store.js';
+import { getState, esDirectiva, addPregunta, updatePregunta, removePregunta, removeIntento,
+  addSesion, updateSesion, removeSesion } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -9,10 +10,19 @@ const CATS = {
   generales: 'Proc. Generales', byc: 'Búsqueda y Captura', comunicaciones: 'Comunicaciones', unidades: 'Unidades / Armamento',
 };
 const DIFS = { facil: 'Fácil', media: 'Media', dificil: 'Difícil', muydificil: 'Muy difícil' };
+const TIPOS = { rapida: 'Academia Rápida (AMTP)', convencional: 'Academia Convencional', reingreso: 'Reingreso', custom: 'Personalizado' };
+const PRESETS = {
+  rapida: { faciles: 10, medias: 10, dificiles: 6, duracionMin: 20 },
+  convencional: { faciles: 8, medias: 10, dificiles: 8, duracionMin: 25 },
+  reingreso: { faciles: 14, medias: 5, dificiles: 2, duracionMin: 15 },
+  custom: { faciles: 10, medias: 8, dificiles: 6, duracionMin: 20 },
+};
 
-function examenURL() {
-  return location.origin + location.pathname.replace(/[^/]*$/, '') + 'examen.html';
+function examenURL(slug) {
+  return location.origin + location.pathname.replace(/[^/]*$/, '') + 'examen.html?s=' + slug;
 }
+
+let filtroSesion = '';
 
 export function viewTraining() {
   const s = getState();
@@ -21,44 +31,53 @@ export function viewTraining() {
   const enviados = intentos.filter((i) => i.estado !== 'en_curso').length;
   const pct = enviados ? Math.round((aprobados / enviados) * 100) : 0;
   const dusmt = s.personal.filter((p) => (p.rango || '').toUpperCase() === 'DUSMT' || p.estado === 'Trainee');
+  const act = s.examenPreguntas.filter((q) => q.activa);
+  const disp = {
+    facil: act.filter((q) => q.dificultad === 'facil').length,
+    media: act.filter((q) => q.dificultad === 'media').length,
+    dificil: act.filter((q) => q.dificultad === 'dificil' || q.dificultad === 'muydificil').length,
+  };
+
+  const intentosFiltrados = filtroSesion
+    ? intentos.filter((i) => i.sesionId === filtroSesion) : intentos;
 
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Training Division'),
-      esDirectiva() ? el('button', { class: 'btn gold ic', onClick: () => openPregunta() }, [icon('plus', 15), 'Nueva pregunta']) : null,
+      el('div', { class: 'row gap' }, esDirectiva() ? [
+        el('button', { class: 'btn navy ic', onClick: () => openPregunta() }, [icon('plus', 15), 'Pregunta']),
+        el('button', { class: 'btn gold ic', onClick: () => openSesion(disp) }, [icon('plus', 15), 'Crear academia']),
+      ] : [el('span', { class: 'muted small' }, 'Vista de solo lectura')]),
     ]),
-
-    // Link del examen
-    el('div', { class: 'card info-strip' }, [
-      el('span', { class: 'strip-ico' }, [icon('link', 22)]),
-      el('div', { style: 'flex:1' }, [
-        el('p', { class: 'muted small', style: 'margin:0 0 6px' }, 'Comparte este enlace con los aspirantes (DUSMT). Examen de 26 preguntas, 20 minutos, opción múltiple, corrección automática en el servidor.'),
-        el('div', { class: 'row gap' }, [
-          el('input', { class: 'search', style: 'width:100%;max-width:520px', value: examenURL(), readonly: '' }),
-          el('button', { class: 'btn ghost small ic', onClick: copiarLink }, [icon('copy', 14), 'Copiar']),
-          el('a', { class: 'btn navy small', href: examenURL(), target: '_blank' }, 'Abrir'),
-        ]),
-      ]),
-    ]),
-
-    configCard(s),
 
     el('div', { class: 'grid kpis' }, [
-      kpi('Intentos', intentos.length, `${enviados} enviados`, 'gold', 'training'),
+      kpi('Academias', s.examenSesiones.length, `${s.examenSesiones.filter((x) => x.activa).length} activas`, 'gold', 'training'),
+      kpi('Intentos', intentos.length, `${enviados} enviados`, '', 'scan'),
       kpi('Aprobados', aprobados, `${pct}% de aprobación`, 'green', 'award'),
-      kpi('Aspirantes DUSMT', dusmt.length, 'en formación', '', 'personal'),
-      kpi('Banco de preguntas', s.examenPreguntas.length, `${s.examenPreguntas.filter((q) => q.activa).length} activas`, '', 'normativa'),
+      kpi('Banco de preguntas', s.examenPreguntas.length, `F:${disp.facil} · M:${disp.media} · D:${disp.dificil}`, '', 'normativa'),
+    ]),
+
+    // Academias
+    el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('training', 16), 'Academias / exámenes']),
+        el('span', { class: 'muted small' }, 'Cada academia es un enlace único')]),
+      s.examenSesiones.length
+        ? el('div', { class: 'list' }, s.examenSesiones.map((ses) => academiaRow(ses, intentos)))
+        : el('p', { class: 'muted' }, esDirectiva() ? 'Crea una academia para generar el enlace del examen.' : 'No hay academias creadas.'),
     ]),
 
     el('div', { class: 'grid two' }, [
       // Resultados
       el('div', { class: 'card no-pad' }, [
-        el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('award', 16), 'Resultados de exámenes']), null]),
-        intentos.length
+        el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('award', 16), 'Resultados']),
+          el('select', { onchange: (e) => { filtroSesion = e.target.value; render(); } },
+            [el('option', { value: '' }, 'Todas las academias'),
+             ...s.examenSesiones.map((x) => el('option', { value: x.id, ...(x.id === filtroSesion ? { selected: '' } : {}) }, x.nombre))])]),
+        intentosFiltrados.length
           ? el('table', { class: 'tbl rows' }, [
               el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), el('th', {}, 'Fecha'),
                 el('th', { class: 'right' }, 'Nota'), el('th', {}, 'Estado'), el('th', {}, '')])),
-              el('tbody', {}, intentos.slice(0, 50).map((i) => el('tr', {}, [
+              el('tbody', {}, intentosFiltrados.slice(0, 60).map((i) => el('tr', {}, [
                 el('td', {}, [el('strong', {}, i.nombre), i.discord ? el('div', { class: 'muted small' }, i.discord) : null]),
                 el('td', { class: 'muted small' }, fmtDate(i.fecha)),
                 el('td', { class: 'right' }, i.estado === 'en_curso' ? '—' : `${pctNota(i)}%`),
@@ -69,7 +88,7 @@ export function viewTraining() {
                   : null),
               ]))),
             ])
-          : el('div', { class: 'empty' }, 'Aún no hay exámenes presentados.'),
+          : el('div', { class: 'empty' }, 'Sin exámenes presentados.'),
       ]),
 
       // Aspirantes DUSMT
@@ -80,7 +99,7 @@ export function viewTraining() {
               el('div', {}, [el('strong', {}, p.nombre), el('div', { class: 'muted small' }, `Placa ${p.placa ?? '—'}`)]),
               badge(p.estado, p.estado === 'Activo' ? 'ok' : 'warn'),
             ])))
-          : el('p', { class: 'muted' }, 'Sin aspirantes DUSMT registrados. Crea un mariscal con rango “DUSMT” en Personal.'),
+          : el('p', { class: 'muted' }, 'Sin aspirantes DUSMT. Crea un mariscal con rango “DUSMT” en Personal.'),
       ]),
     ]),
 
@@ -95,7 +114,7 @@ export function viewTraining() {
         el('tbody', {}, s.examenPreguntas.map((q) => el('tr', { class: q.activa ? '' : 'muted' }, [
           el('td', {}, badge(CATS[q.categoria] || q.categoria, 'rango')),
           el('td', {}, DIFS[q.dificultad] || q.dificultad),
-          el('td', {}, q.enunciado.length > 80 ? q.enunciado.slice(0, 80) + '…' : q.enunciado),
+          el('td', {}, q.enunciado.length > 76 ? q.enunciado.slice(0, 76) + '…' : q.enunciado),
           el('td', {}, q.activa ? badge('activa', 'ok') : badge('inactiva', '')),
           el('td', { class: 'right nowrap' }, esDirectiva() ? [
             el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openPregunta(q) }, [icon('edit', 15)]),
@@ -108,53 +127,29 @@ export function viewTraining() {
   ]);
 }
 
-function configCard(s) {
-  const cfg = s.examenConfig || { faciles: 10, medias: 10, dificiles: 6, duracion_min: 20 };
-  const act = s.examenPreguntas.filter((q) => q.activa);
-  const disp = {
-    facil: act.filter((q) => q.dificultad === 'facil').length,
-    media: act.filter((q) => q.dificultad === 'media').length,
-    dificil: act.filter((q) => q.dificultad === 'dificil' || q.dificultad === 'muydificil').length,
-  };
-  const total = (cfg.faciles || 0) + (cfg.medias || 0) + (cfg.dificiles || 0);
-  const puede = esDirectiva();
-
-  const f = {};
-  const num = (k, v, max) => (f[k] = el('input', { type: 'number', min: '0', max: String(max), value: String(v), disabled: puede ? null : '' }));
-
-  const tier = (label, key, val, dispN, kind) => el('div', { class: 'cfg-tier' }, [
-    el('div', { class: 'row between' }, [el('span', { class: 'arm-h', style: 'margin:0' }, label),
-      el('span', { class: `badge ${kind}` }, `${dispN} disponibles`)]),
-    num(key, val, dispN),
-  ]);
-
-  async function guardar() {
-    const data = {
-      faciles: Math.min(+f.faciles.value || 0, disp.facil),
-      medias: Math.min(+f.medias.value || 0, disp.media),
-      dificiles: Math.min(+f.dificiles.value || 0, disp.dificil),
-      duracion_min: Math.max(1, +f.duracion.value || 20),
-    };
-    try { await updateExamenConfig(data); toast('Configuración guardada'); render(); }
-    catch (e) { toast(e.message, 'err'); }
-  }
-
-  return el('div', { class: 'card' }, [
-    el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('scan', 16), 'Configuración del examen']),
-      el('span', { class: 'muted small' }, puede ? 'Ajustable por la Training Division (Directive+)' : 'Definido por la Training Division')]),
-    el('p', { class: 'muted small', style: 'margin-top:0' }, 'Define cuántas preguntas de cada dificultad entran en el examen (de fácil a difícil) y la duración. El examen se arma al azar respetando estos cupos.'),
-    el('div', { class: 'cfg-grid' }, [
-      tier('Fáciles', 'faciles', cfg.faciles, disp.facil, 'ok'),
-      tier('Medias', 'medias', cfg.medias, disp.media, 'warn'),
-      tier('Difíciles', 'dificiles', cfg.dificiles, disp.dificil, 'red'),
-      el('div', { class: 'cfg-tier' }, [
-        el('span', { class: 'arm-h', style: 'margin:0' }, 'Duración (min)'),
-        (f.duracion = el('input', { type: 'number', min: '1', value: String(cfg.duracion_min), disabled: puede ? null : '' })),
-      ]),
+function academiaRow(ses, intentos) {
+  const n = intentos.filter((i) => i.sesionId === ses.id).length;
+  const aprob = intentos.filter((i) => i.sesionId === ses.id && i.aprobado).length;
+  const url = examenURL(ses.slug);
+  return el('div', { class: 'academia' + (ses.activa ? '' : ' cerrada') }, [
+    el('div', { class: 'aca-top' }, [
+      el('div', {}, [el('strong', {}, ses.nombre),
+        el('span', { class: 'badge rango', style: 'margin-left:8px' }, TIPOS[ses.tipo] || ses.tipo),
+        ses.activa ? badge('activa', 'ok') : badge('cerrada', '')]),
+      el('span', { class: 'muted small' }, `${ses.faciles}F · ${ses.medias}M · ${ses.dificiles}D · ${ses.duracionMin} min`),
     ]),
-    el('div', { class: 'row between', style: 'margin-top:12px' }, [
-      el('span', { class: 'muted small' }, `Total por examen: ${total} preguntas`),
-      puede ? el('button', { class: 'btn gold small', onClick: guardar }, 'Guardar configuración') : null,
+    el('div', { class: 'row gap aca-link' }, [
+      el('input', { class: 'search', style: 'flex:1;min-width:0', value: url, readonly: '' }),
+      el('button', { class: 'btn ghost small ic', onClick: () => { navigator.clipboard.writeText(url).then(() => toast('Enlace copiado')).catch(() => toast('No se pudo copiar', 'err')); } }, [icon('copy', 14), 'Copiar']),
+      el('a', { class: 'btn navy small', href: url, target: '_blank' }, 'Abrir'),
+    ]),
+    el('div', { class: 'row between aca-foot' }, [
+      el('span', { class: 'muted small' }, `${n} respuestas · ${aprob} aprobados · creada ${fmtDate(ses.fecha)}`),
+      esDirectiva() ? el('div', { class: 'nowrap' }, [
+        el('button', { class: 'btn ghost small', onClick: async () => { try { await updateSesion(ses.id, { activa: !ses.activa }); toast(ses.activa ? 'Academia cerrada' : 'Academia reabierta'); render(); } catch (e) { toast(e.message, 'err'); } } }, ses.activa ? 'Cerrar' : 'Reabrir'),
+        el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
+          confirmDialog(`¿Eliminar la academia "${ses.nombre}"? Los resultados quedarán sin academia asociada.`, async () => { try { await removeSesion(ses.id); toast('Academia eliminada'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)]),
+      ]) : null,
     ]),
   ]);
 }
@@ -171,6 +166,47 @@ const kpi = (label, value, sub, cls, ic) => el('div', { class: `card kpi ${cls}`
   el('div', { class: 'kpi-label' }, label),
   sub ? el('div', { class: 'kpi-sub' }, sub) : null,
 ]);
+
+// ------------------------- Crear / editar academia -------------------------
+function openSesion(disp) {
+  const f = {};
+  const num = (k, v) => (f[k] = el('input', { type: 'number', min: '0', value: String(v) }));
+  const tipoSel = el('select', {}, Object.entries(TIPOS).map(([v, l]) => el('option', { value: v }, l)));
+  f.tipo = tipoSel;
+  const aplicar = (t) => { const p = PRESETS[t] || PRESETS.custom; f.faciles.value = p.faciles; f.medias.value = p.medias; f.dificiles.value = p.dificiles; f.duracion.value = p.duracionMin; };
+  tipoSel.addEventListener('change', () => aplicar(tipoSel.value));
+
+  const p0 = PRESETS.rapida;
+  const body = el('div', { class: 'form-grid' }, [
+    el('label', { class: 'field full' }, [el('span', {}, 'Nombre de la academia'), (f.nombre = el('input', { placeholder: 'Ej.: Academia Convencional — Junio 2026' }))]),
+    field('Tipo de examen', tipoSel),
+    field('Duración (min)', (f.duracion = el('input', { type: 'number', min: '1', value: String(p0.duracionMin) }))),
+    field(`Fáciles (disp. ${disp.facil})`, num('faciles', p0.faciles)),
+    field(`Medias (disp. ${disp.media})`, num('medias', p0.medias)),
+    field(`Difíciles (disp. ${disp.dificil})`, num('dificiles', p0.dificiles)),
+    el('p', { class: 'muted small full' }, 'El tipo prerrellena la dificultad; puedes ajustarla. Reingreso = mayoría de preguntas fáciles. Al crear se genera el enlace único.'),
+    el('div', { class: 'row gap end full' }, [
+      el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
+      el('button', { class: 'btn gold', onClick: save }, 'Crear academia'),
+    ]),
+  ]);
+
+  async function save() {
+    const data = {
+      nombre: f.nombre.value.trim(), tipo: f.tipo.value,
+      faciles: Math.min(+f.faciles.value || 0, disp.facil),
+      medias: Math.min(+f.medias.value || 0, disp.media),
+      dificiles: Math.min(+f.dificiles.value || 0, disp.dificil),
+      duracionMin: Math.max(1, +f.duracion.value || 20),
+    };
+    if (!data.nombre) return toast('Ponle un nombre a la academia', 'err');
+    if (data.faciles + data.medias + data.dificiles === 0) return toast('Configura al menos una pregunta', 'err');
+    try { await addSesion(data); toast('Academia creada'); closeModal(); render(); }
+    catch (e) { toast(e.message, 'err'); }
+  }
+
+  modal('Crear academia', body, { wide: true });
+}
 
 // --------------------------- Alta / edición de pregunta --------------------
 function openPregunta(q = null) {
@@ -222,8 +258,4 @@ function openPregunta(q = null) {
   }
 
   modal(edit ? 'Editar pregunta' : 'Nueva pregunta', body, { wide: true });
-}
-
-function copiarLink() {
-  navigator.clipboard.writeText(examenURL()).then(() => toast('Enlace copiado')).catch(() => toast('No se pudo copiar', 'err'));
 }
