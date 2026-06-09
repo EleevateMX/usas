@@ -3,19 +3,23 @@
 //  Shell cache + stale-while-revalidate para recursos propios. Las llamadas a
 //  Supabase y CDNs van siempre a la red (datos frescos).
 // ===========================================================================
-const VERSION = 'usms-v5';
+const VERSION = 'usms-v6';
+const MANUALES = ['introduccion', 'imagen', 'comunicaciones', 'unidades', 'armamento',
+  'generales', 'leo', 'corte', 'prision', 'byc', 'traslados', 'primeros_auxilios']
+  .map((s) => `./assets/manuales/${s}.md`);
 const SHELL = [
   './', './index.html', './examen.html', './academia.html', './manifest.json',
   './assets/css/styles.css',
-  './assets/manuales/introduccion.md', './assets/manuales/imagen.md',
-  './assets/manuales/comunicaciones.md', './assets/manuales/unidades.md',
+  ...MANUALES,
   './assets/img/usms-seal.png', './assets/img/usms-seal.svg',
   './assets/img/favicon.png', './assets/img/icon-192.png', './assets/img/icon-512.png',
   './assets/img/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL).catch(() => {})).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION)
+    .then((c) => Promise.allSettled(SHELL.map((u) => c.add(u))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
