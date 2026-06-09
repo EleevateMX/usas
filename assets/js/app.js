@@ -97,5 +97,10 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 
+// PWA: registra el service worker (instalable + caché de la app).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
 // Exporta para que otras vistas refresquen menú/topbar tras cambios de rol.
 export { buildNav, buildTopbar };

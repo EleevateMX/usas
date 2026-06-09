@@ -530,3 +530,35 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .rev-tag { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; color: var(--green); white-space: nowrap; }
 .rev-tag.mal { color: var(--red); }
 .rev-opt .ex-key { width: 22px; height: 22px; flex-shrink: 0; }
+
+/* =========================================================================
+   Móvil / responsive
+   ========================================================================= */
+@media (max-width: 760px) {
+  .content { padding: 16px; }
+  .topbar { padding: 12px 16px; gap: 10px; }
+  .topbar-title { font-size: 14px; }
+  .toolbar h2, .view > .toolbar h2 { font-size: 20px; }
+  .user-chip { padding: 5px 10px; }
+  .user-name { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Tablas con scroll horizontal dentro de su tarjeta */
+  .card { overflow-x: auto; }
+  .tbl { min-width: 520px; }
+  .hero-title { font-size: 22px; }
+  .modal, .modal-wide { width: 100%; }
+  .ex-card.wide, .ex-card { width: 100%; padding: 22px 18px; }
+  .ex-quiz { max-height: none; }
+  .grid.cases { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .content { padding: 12px; }
+  .kpi-val { font-size: 26px; }
+  .hero { padding: 18px; }
+  .btn { padding: 9px 13px; }
+  .aca-link { flex-wrap: wrap; }
+  .aca-link .search { width: 100%; flex: 1 1 100%; }
+}
+/* Respeta reduce-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

@@ -5,8 +5,8 @@ import { icon } from '../icons.js';
 import { render } from '../router.js';
 
 const RANGOS = [
-  'N/A', 'DUSMT', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV',
-  'SDUSM I', 'SDUSM II', 'CDUSM', 'U.S Marshal', 'Director',
+  'DUSMT', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV',
+  'SDUSM I', 'SDUSM II', 'CDUSM', 'U.S. Marshal', 'N/A',
 ];
 const ESTADOS = ['Activo', 'Inactivo', 'LOA', 'Suspendido', 'Retirado',
   'Traslado', 'Expulsado', 'Vetado', 'KIA', 'Deshabilitada'];
