@@ -982,3 +982,16 @@ tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .td-tab { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 9px; color: var(--muted); font-weight: 600; }
 .td-tab:hover, .td-tab.active { background: var(--navy-700); color: var(--gold); }
 @media (max-width: 640px) { .td-tab span { display: none; } }
+
+/* Práctica de repaso (aula) */
+.pr-list { display: flex; flex-direction: column; gap: 14px; margin: 8px 0 14px; }
+.pr-q { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--navy-850); }
+.pr-enun { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin-bottom: 10px; }
+.pr-opts { display: flex; flex-direction: column; gap: 7px; }
+.pr-opt {
+  display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; cursor: pointer; font-family: inherit; font-size: 14px;
+  background: var(--navy-800); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; color: var(--text);
+}
+.pr-opt:hover { border-color: var(--gold-soft); }
+.pr-opt.sel { border-color: var(--gold); background: rgba(217,181,61,.12); }
+.pr-score { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 12px; }

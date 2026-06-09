@@ -18,6 +18,7 @@ const portalURL = () => location.origin + location.pathname.replace(/[^/]*$/, ''
 const examenURL = (slug) => location.origin + location.pathname.replace(/[^/]*$/, '') + 'examen.html?s=' + slug;
 const TIPO_LBL = { nota: 'Nota', asistencia: 'Asistencia', calificacion: 'Calificación' };
 const TIPO_KIND = { nota: '', asistencia: 'warn', calificacion: 'gold' };
+const CATS_EX = { intro: 'Introducción', normativa: 'Normativa', imagen: 'Código de Imagen', traslados: 'Traslados/VIP', corte: 'Corte', prision: 'Prisión', generales: 'Proc. Generales', byc: 'Búsqueda y Captura', comunicaciones: 'Comunicaciones', unidades: 'Unidades/Armamento' };
 const pctNota = (i) => (i.total ? Math.round((i.puntaje / i.total) * 100) : 0);
 let academiaAbierta = null; // id de la sesión/academia abierta en detalle
 
@@ -142,7 +143,14 @@ function moduloRow(m, gestor) {
       ]),
       m.liberado ? badge('liberado', 'ok') : badge('bloqueado', ''),
       gestor ? el('div', { class: 'nowrap' }, [
-        el('button', { class: 'btn ghost small', onClick: async () => { try { await updateModulo(m.id, { liberado: !m.liberado }); toast(m.liberado ? 'Tema bloqueado' : 'Tema liberado'); render(); } catch (e) { toast(e.message, 'err'); } } }, m.liberado ? 'Bloquear' : 'Liberar'),
+        el('button', { class: 'btn ghost small', onClick: async () => {
+          try {
+            const liberar = !m.liberado;
+            await updateModulo(m.id, { liberado: liberar });
+            if (liberar) await addAnuncio({ titulo: `Día ${m.orden} liberado`, contenido: `Ya puedes estudiar: ${m.titulo}.`, autor: 'Training Division', fijado: false, sesionId: null });
+            toast(liberar ? 'Tema liberado · anuncio publicado' : 'Tema bloqueado'); render();
+          } catch (e) { toast(e.message, 'err'); }
+        } }, m.liberado ? 'Bloquear' : 'Liberar'),
         el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openModulo(m) }, [icon('edit', 15)]),
         el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
           confirmDialog(`¿Eliminar “${m.titulo}”?`, async () => { try { await removeModulo(m.id); toast('Módulo eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)]),
@@ -271,6 +279,12 @@ function openModulo(m = null) {
   const temasTxt = (d.temas || []).map((t) => `${t.nombre} | ${t.url || ''}`).join('\n');
   f.temas = el('textarea', { rows: '4', placeholder: 'Un tema por línea:\nNombre del manual | https://enlace' }, temasTxt);
   f.guia = el('textarea', { rows: '3', placeholder: 'Resumen / repaso del día (se muestra en el portal de estudio).' }, d.guia || '');
+  const catSel = new Set(d.categorias || []);
+  const catChecks = Object.entries(CATS_EX).map(([k, lbl]) => {
+    const cb = el('input', { type: 'checkbox', ...(catSel.has(k) ? { checked: '' } : {}) });
+    cb.addEventListener('change', () => { cb.checked ? catSel.add(k) : catSel.delete(k); });
+    return el('label', { class: 'chk' }, [cb, el('span', {}, lbl)]);
+  });
 
   async function save() {
     const titulo = f.titulo.value.trim();
@@ -279,7 +293,7 @@ function openModulo(m = null) {
       const [nombre, url] = l.split('|').map((x) => x.trim());
       return { nombre: nombre || l, url: url || '' };
     });
-    const data = { titulo, orden: +f.orden.value || 1, descripcion: f.descripcion.value.trim(), temas, guia: f.guia.value.trim(), liberado: f.liberado.checked };
+    const data = { titulo, orden: +f.orden.value || 1, descripcion: f.descripcion.value.trim(), temas, guia: f.guia.value.trim(), categorias: [...catSel], liberado: f.liberado.checked };
     try {
       if (edit) { await updateModulo(m.id, data); toast('Módulo actualizado'); }
       else { await addModulo(data); toast('Módulo creado'); }
@@ -294,6 +308,7 @@ function openModulo(m = null) {
     el('label', { class: 'field full' }, [el('span', {}, 'Descripción'), f.descripcion]),
     el('label', { class: 'field full' }, [el('span', {}, 'Temas / manuales (nombre | enlace)'), f.temas]),
     el('label', { class: 'field full' }, [el('span', {}, 'Guía de estudio / repaso del día'), f.guia]),
+    el('label', { class: 'field full' }, [el('span', {}, 'Categorías de examen del día (para la práctica del aula)'), el('div', { class: 'chk-grid' }, catChecks)]),
     el('div', { class: 'row gap end full' }, [
       el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
       el('button', { class: 'btn gold', onClick: save }, edit ? 'Guardar' : 'Crear'),
@@ -304,9 +319,11 @@ function openModulo(m = null) {
 
 // ------------------------------ Anuncios -----------------------------------
 function anuncioRow(an, gestor) {
+  const ses = an.sesionId ? getState().examenSesiones.find((x) => x.id === an.sesionId) : null;
   return el('div', { class: 'anuncio' + (an.fijado ? ' fijado' : '') }, [
     el('div', { class: 'row between' }, [
-      el('div', {}, [an.fijado ? badge('Fijado', 'gold') : null, el('strong', {}, ' ' + an.titulo)]),
+      el('div', {}, [an.fijado ? badge('Fijado', 'gold') : null, el('strong', {}, ' ' + an.titulo),
+        ses ? badge(ses.nombre, 'rango') : el('span', { class: 'muted xsmall' }, ' · Global')]),
       el('span', { class: 'muted xsmall' }, fmtDateTime(an.fecha)),
     ]),
     an.contenido ? el('p', { class: 'anuncio-txt' }, an.contenido) : null,
@@ -323,18 +340,22 @@ function anuncioRow(an, gestor) {
 
 function openAnuncio(an = null) {
   const edit = !!an; const d = an || {}; const f = {};
-  const yo = getState().perfil?.nombre || getState().perfil?.email || '';
+  const s = getState();
+  const yo = s.perfil?.nombre || s.perfil?.email || '';
   f.titulo = el('input', { value: d.titulo || '', placeholder: 'Título del anuncio' });
   f.contenido = el('textarea', { rows: '4', placeholder: 'Contenido del anuncio (apoyo a lo publicado en Discord).' }, d.contenido || '');
   f.fijado = el('input', { type: 'checkbox', ...(d.fijado ? { checked: '' } : {}) });
+  f.sesion = el('select', {}, [el('option', { value: '', ...(d.sesionId ? {} : { selected: '' }) }, 'Global (todas las academias)'),
+    ...s.examenSesiones.map((x) => el('option', { value: x.id, ...(x.id === d.sesionId ? { selected: '' } : {}) }, x.nombre))]);
   async function save() {
     if (!f.titulo.value.trim()) return toast('Ponle un título', 'err');
-    const data = { titulo: f.titulo.value.trim(), contenido: f.contenido.value.trim(), fijado: f.fijado.checked, autor: edit ? d.autor : yo };
+    const data = { titulo: f.titulo.value.trim(), contenido: f.contenido.value.trim(), fijado: f.fijado.checked, autor: edit ? d.autor : yo, sesionId: f.sesion.value || null };
     try { if (edit) await updateAnuncio(an.id, data); else await addAnuncio(data); toast('Anuncio guardado'); closeModal(); render(); }
     catch (e) { toast(e.message, 'err'); }
   }
   const body = el('div', { class: 'form-grid' }, [
     el('label', { class: 'field full' }, [el('span', {}, 'Título'), f.titulo]),
+    el('label', { class: 'field full' }, [el('span', {}, 'Dirigido a'), f.sesion]),
     el('label', { class: 'field full' }, [el('span', {}, 'Contenido'), f.contenido]),
     el('label', { class: 'field row gap full', style: 'align-items:center' }, [f.fijado, el('span', {}, 'Fijar arriba')]),
     el('div', { class: 'row gap end full' }, [
@@ -486,8 +507,14 @@ function asistenciaGrid(aspirantes, gestor) {
 }
 
 async function toggleExamenTodos(sesionId, habilitado) {
-  try { await habilitarExamenAcademia(sesionId, habilitado); toast(habilitado ? 'Examen habilitado a todos' : 'Examen quitado a todos'); render(); }
-  catch (e) { toast(e.message, 'err'); }
+  try {
+    await habilitarExamenAcademia(sesionId, habilitado);
+    if (habilitado) {
+      const ses = getState().examenSesiones.find((x) => x.id === sesionId);
+      await addAnuncio({ titulo: 'Examen disponible', contenido: `El examen de ${ses?.nombre || 'la academia'} ya está habilitado. ¡Mucho éxito!`, autor: 'Training Division', sesionId });
+    }
+    toast(habilitado ? 'Examen habilitado a todos · anuncio publicado' : 'Examen quitado a todos'); render();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // ----------------------------- Agregar Academia ----------------------------

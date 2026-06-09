@@ -98,7 +98,7 @@ const mapDivMiembro = (r) => ({
 });
 const mapModulo = (r) => ({
   id: r.id, orden: r.orden, titulo: r.titulo, descripcion: r.descripcion || '',
-  temas: r.temas || [], guia: r.guia || '', liberado: r.liberado, fecha: r.created_at,
+  temas: r.temas || [], guia: r.guia || '', categorias: r.categorias || [], liberado: r.liberado, fecha: r.created_at,
 });
 const mapAspirante = (r) => ({
   id: r.id, nombre: r.nombre, discord: r.discord, hash: r.hash || '', sesionId: r.sesion_id,
@@ -107,7 +107,7 @@ const mapAspirante = (r) => ({
 });
 const mapAnuncio = (r) => ({
   id: r.id, titulo: r.titulo, contenido: r.contenido || '', autor: r.autor || '',
-  fijado: r.fijado, fecha: r.created_at,
+  fijado: r.fijado, sesionId: r.sesion_id, fecha: r.created_at,
 });
 const mapRegla = (r) => ({
   rango: r.rango, orden: r.orden, diasMin: r.dias_min, horasMin: Number(r.horas_min) || 0, strikesMax: Number(r.strikes_max) || 0,
@@ -496,14 +496,14 @@ export async function addModulo(m) {
   const orden = m.orden || ((state.tdModulos.at(-1)?.orden || 0) + 1);
   const { error } = await supabase.from('td_modulos').insert({
     orden, titulo: m.titulo, descripcion: m.descripcion || '', temas: m.temas || [],
-    guia: m.guia || '', liberado: !!m.liberado,
+    guia: m.guia || '', categorias: m.categorias || [], liberado: !!m.liberado,
   });
   if (error) throw error;
   await loadAll();
 }
 export async function updateModulo(id, patch) {
   const row = {};
-  for (const k of ['orden', 'titulo', 'descripcion', 'temas', 'guia', 'liberado']) if (k in patch) row[k] = patch[k];
+  for (const k of ['orden', 'titulo', 'descripcion', 'temas', 'guia', 'categorias', 'liberado']) if (k in patch) row[k] = patch[k];
   const { error } = await supabase.from('td_modulos').update(row).eq('id', id);
   if (error) throw error;
   await loadAll();
@@ -563,6 +563,7 @@ export async function updateAspirante(id, patch) {
 export async function addAnuncio(a) {
   const { error } = await supabase.from('td_anuncios').insert({
     titulo: a.titulo, contenido: a.contenido || '', autor: a.autor || '', fijado: !!a.fijado,
+    sesion_id: a.sesionId || null,
   });
   if (error) throw error;
   await loadAll();
@@ -570,6 +571,7 @@ export async function addAnuncio(a) {
 export async function updateAnuncio(id, patch) {
   const row = {};
   for (const k of ['titulo', 'contenido', 'autor', 'fijado']) if (k in patch) row[k] = patch[k];
+  if ('sesionId' in patch) row.sesion_id = patch.sesionId || null;
   const { error } = await supabase.from('td_anuncios').update(row).eq('id', id);
   if (error) throw error;
   await loadAll();

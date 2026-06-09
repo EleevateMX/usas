@@ -247,8 +247,66 @@ function moduloCard(m, hecho) {
       return el('span', { class: 'portal-tema nolink' }, [icon('file', 15), el('span', {}, t.nombre)]);
     })) : null,
     (m.guia || '').trim() ? el('div', { class: 'portal-guia' }, [el('span', { class: 'guia-lbl' }, 'Guía de estudio'), el('p', {}, m.guia)]) : null,
-    el('div', { class: 'row gap end' }, [check]),
+    el('div', { class: 'row gap end' }, [
+      (m.categorias && m.categorias.length) ? el('button', { class: 'btn navy small ic', onClick: () => abrirPractica(m) }, [icon('scan', 14), 'Practicar']) : null,
+      check,
+    ]),
   ]);
+}
+
+// --------------------------- Práctica de repaso ----------------------------
+function preguntaPractica(p, i, respuestas) {
+  const opts = el('div', { class: 'pr-opts' });
+  p.opciones.forEach((texto, idx) => {
+    const opt = el('button', { class: 'pr-opt', type: 'button' }, [el('span', { class: 'ex-key' }, String.fromCharCode(65 + idx)), el('span', {}, texto)]);
+    opt.addEventListener('click', () => { respuestas[p.id] = idx; [...opts.children].forEach((c) => c.classList.remove('sel')); opt.classList.add('sel'); });
+    opts.append(opt);
+  });
+  return el('div', { class: 'pr-q' }, [el('div', { class: 'pr-enun' }, [el('span', { class: 'ex-num' }, String(i + 1)), el('span', {}, p.enunciado)]), opts]);
+}
+
+async function abrirPractica(m) {
+  document.getElementById('practica-overlay')?.remove();
+  const body = el('div', { class: 'manual-body' }, [el('p', { class: 'muted' }, 'Cargando práctica…')]);
+  const close = el('button', { class: 'icon-btn', title: 'Cerrar', onClick: () => overlay.remove() }, [icon('close', 18)]);
+  const head = el('div', { class: 'manual-head' }, [el('div', { class: 'manual-title' }, `Práctica · Día ${m.orden}`), el('div', { class: 'manual-acts' }, [close])]);
+  const sheet = el('div', { class: 'manual-sheet' }, [head, body]);
+  const overlay = el('div', { id: 'practica-overlay', class: 'manual-overlay' }, [sheet]);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.append(overlay);
+
+  try {
+    const r = await api('practica', { token: estado.token, orden: m.orden });
+    if (!r.preguntas?.length) { body.innerHTML = ''; body.append(el('p', { class: 'muted' }, 'Aún no hay preguntas de práctica para este día.')); return; }
+    renderQuiz(r.preguntas);
+  } catch (e) { body.innerHTML = ''; body.append(el('p', { class: 'muted' }, e.message || 'No se pudo cargar la práctica.')); }
+
+  function renderQuiz(preguntas) {
+    const respuestas = {};
+    const cont = el('div', { class: 'pr-list' }, preguntas.map((p, i) => preguntaPractica(p, i, respuestas)));
+    const btn = el('button', { class: 'btn gold full', onClick: revisar }, 'Revisar respuestas');
+    body.innerHTML = '';
+    body.append(el('p', { class: 'muted small' }, 'Práctica sin nota: responde y revisa con la explicación de cada una.'), cont, btn);
+    async function revisar() {
+      btn.disabled = true; btn.textContent = 'Revisando…';
+      try { renderFeedback(await api('practica-revisar', { token: estado.token, respuestas })); }
+      catch (e) { toast(e.message || 'Error', 'err'); btn.disabled = false; btn.textContent = 'Revisar respuestas'; }
+    }
+  }
+  function renderFeedback(r) {
+    body.innerHTML = '';
+    body.append(
+      el('div', { class: 'pr-score' }, [el('span', { class: 'pe-pct' }, `${r.aciertos}/${r.total}`), el('span', { class: 'muted small' }, 'aciertos')]),
+      el('div', { class: 'fb-list' }, (r.detalle || []).map((d, i) => el('div', { class: 'fb-err' + (d.ok ? ' ok' : '') }, [
+        el('div', { class: 'fb-q' }, [el('span', { class: 'ex-num' }, String(i + 1)), el('span', {}, d.enunciado)]),
+        d.ok ? null : el('div', { class: 'fb-row mal' }, [el('span', { class: 'fb-tag' }, 'Tu resp.'), el('span', {}, d.tu || 'Sin responder')]),
+        el('div', { class: 'fb-row bien' }, [el('span', { class: 'fb-tag' }, d.ok ? 'Correcta ✓' : 'Correcta'), el('span', {}, d.correcta)]),
+        d.explicacion ? el('div', { class: 'fb-why' }, [icon('award', 13), el('span', {}, d.explicacion)]) : null,
+      ]))),
+      el('button', { class: 'btn navy full', onClick: () => abrirPractica(m) }, 'Practicar de nuevo'),
+    );
+    sheet.scrollTop = 0;
+  }
 }
 
 async function toggle(moduloId, completado, btn) {
