@@ -923,3 +923,29 @@ tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 }
 .func-chip .ico { color: var(--green); }
 @media (max-width: 640px) { .aula-mv { grid-template-columns: 1fr; } .aula-welcome { font-size: 20px; } }
+
+/* =========================================================================
+   Aula DUSMT — línea de tiempo y resultado de examen
+   ========================================================================= */
+.aula-timeline { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 8px; }
+.tl-step { display: flex; gap: 12px; align-items: flex-start; position: relative; padding: 6px 0; }
+.tl-step::before { content: ''; position: absolute; left: 13px; top: 26px; bottom: -6px; width: 2px; background: var(--line); }
+.tl-step:last-child::before { display: none; }
+.tl-dot {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--navy-700); border: 1px solid var(--line); color: var(--muted); z-index: 1;
+}
+.tl-step.open .tl-dot { color: var(--gold); border-color: rgba(217,181,61,.5); background: rgba(217,181,61,.1); }
+.tl-step.done .tl-dot { color: #8ff0cf; border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.12); }
+.tl-body { padding-top: 1px; }
+.tl-day { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--gold-soft); }
+.tl-title { font-weight: 600; font-size: 14.5px; }
+.tl-step.lock .tl-title { color: var(--muted); }
+.tl-state { font-size: 12px; color: var(--muted); }
+.tl-step.done .tl-state { color: #8ff0cf; }
+
+.pe-score { display: flex; align-items: baseline; gap: 10px; margin: 6px 0; }
+.pe-pct { font-family: 'Oswald', sans-serif; font-size: 26px; color: var(--gold); }
+.portal-examen.ok .pe-pct { color: #8ff0cf; }
+.portal-examen.no .pe-pct { color: #ffb4b4; }
+.pe-msg { margin: 4px 0 0; font-size: 14px; }

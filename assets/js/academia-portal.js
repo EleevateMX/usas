@@ -82,9 +82,10 @@ async function cargar() {
 function vistaPortal() {
   const d = estado.data;
   const completados = new Set(d.completados || []);
-  const liberados = d.modulos || [];
-  const total = d.totalModulos || liberados.length;
-  const bloqueados = Math.max(0, total - liberados.length);
+  const modulos = d.modulos || [];
+  const liberados = modulos.filter((m) => m.liberado);
+  const total = modulos.length;
+  const bloqueados = total - liberados.length;
   const hechos = liberados.filter((m) => completados.has(m.id)).length;
   const pct = liberados.length ? Math.round((hechos / liberados.length) * 100) : 0;
   const conGuia = liberados.filter((m) => (m.guia || '').trim());
@@ -105,6 +106,12 @@ function vistaPortal() {
       el('div', { class: 'prog-bar lg' }, [el('div', { class: 'prog-fill', style: `width:${pct}%` })]),
     ]),
 
+    // Línea de tiempo de la academia (los 5 días)
+    modulos.length ? el('div', {}, [
+      el('h3', { class: 'portal-h' }, [icon('layers', 16), 'Ruta de la academia']),
+      lineaTiempo(modulos, completados),
+    ]) : null,
+
     examenCard(d.examen, d.aspirante),
     (d.anuncios || []).length ? anunciosBloque(d.anuncios) : null,
     (d.notas || []).length ? notasBloque(d.notas) : null,
@@ -116,11 +123,24 @@ function vistaPortal() {
     liberados.length ? el('div', { class: 'portal-mods' }, liberados.map((m) => moduloCard(m, completados.has(m.id))))
       : el('p', { class: 'muted center' }, 'Aún no se ha liberado ningún tema. Vuelve cuando la TD publique el primer día.'),
 
-    bloqueados ? el('div', { class: 'portal-locked' }, [icon('clock', 16),
-      el('span', {}, `${bloqueados} ${bloqueados === 1 ? 'módulo se liberará' : 'módulos se liberarán'} más adelante.`)]) : null,
-
     el('div', { class: 'auth-foot' }, 'U.S. Marshals Service · Training Division'),
   ]));
+}
+
+function lineaTiempo(modulos, completados) {
+  return el('div', { class: 'aula-timeline' }, modulos.map((m) => {
+    const hecho = m.liberado && completados.has(m.id);
+    const estado = !m.liberado ? 'lock' : hecho ? 'done' : 'open';
+    const etiqueta = estado === 'lock' ? 'Próximamente' : estado === 'done' ? 'Estudiado' : 'Disponible';
+    return el('div', { class: 'tl-step ' + estado }, [
+      el('div', { class: 'tl-dot' }, [icon(estado === 'done' ? 'check' : estado === 'lock' ? 'clock' : 'star', 12)]),
+      el('div', { class: 'tl-body' }, [
+        el('div', { class: 'tl-day' }, `Día ${m.orden}`),
+        el('div', { class: 'tl-title' }, m.titulo),
+        el('div', { class: 'tl-state' }, etiqueta),
+      ]),
+    ]);
+  }));
 }
 
 function estadoTxt(e) { return e === 'Aprobado' ? 'Aprobado' : e === 'Baja' ? 'Baja' : 'En curso'; }
@@ -153,13 +173,24 @@ function misionVision() {
   ]);
 }
 
+function mensajeExamen(tipo, aprobado) {
+  if (aprobado) return '¡Felicidades! Aprobaste la evaluación teórica. Excelente base para lo aplicado.';
+  if (tipo === 'rapida') return 'Repasa en la retroalimentación del examen los puntos que fallaste antes de la parte aplicada.';
+  if (tipo === 'reingreso') return 'Revisa los temas marcados como “a reforzar” y consúltalo con tu instructor para mejorar.';
+  return 'No te sientas mal: la práctica hace al maestro. Esto es solo la introducción a lo aplicado.';
+}
+
 function examenCard(ex, asp) {
   if (!ex || !ex.habilitado) return null;
   if (ex.presentado) {
     return el('div', { class: 'portal-examen ' + (ex.aprobado ? 'ok' : 'no') }, [
       el('div', { class: 'pe-head' }, [icon(ex.aprobado ? 'check' : 'close', 18),
-        el('strong', {}, ex.aprobado ? 'Examen aprobado' : 'Examen presentado')]),
-      el('p', { class: 'muted small' }, `${ex.nombre} · ${ex.porcentaje != null ? ex.porcentaje + '%' : ''}`),
+        el('strong', {}, ex.aprobado ? 'Examen aprobado' : 'No aprobado')]),
+      el('div', { class: 'pe-score' }, [
+        ex.porcentaje != null ? el('span', { class: 'pe-pct' }, `${ex.porcentaje}%`) : null,
+        el('span', { class: 'muted small' }, `${ex.nombre}${ex.puntaje != null ? ` · ${ex.puntaje}/${ex.totalPreg} correctas` : ''}`),
+      ]),
+      el('p', { class: 'pe-msg' }, mensajeExamen(ex.tipo, ex.aprobado)),
     ]);
   }
   const params = new URLSearchParams({ s: ex.slug, n: asp?.nombre || '', d: asp?.discord || '' });
