@@ -510,10 +510,29 @@ export async function removeModulo(id) {
 
 export async function addAspirante(a) {
   const { error } = await supabase.from('td_aspirantes').insert({
-    nombre: a.nombre, discord: a.discord || null, sesion_id: a.sesionId || null, estado: a.estado || 'En curso',
+    nombre: a.nombre, hash: a.hash || null, discord: a.discord || null,
+    sesion_id: a.sesionId || null, examen_sesion_id: a.examenSesionId || null, estado: a.estado || 'En curso',
   });
   if (error) throw error;
   await loadAll();
+}
+// Crea una academia (sesión de examen) y precarga su roster de aspirantes
+// (Nombre + #HASH#), listos para ingresar al aula sin registrarse.
+export async function crearAcademiaConRoster({ nombre, tipo, faciles, medias, dificiles, duracionMin, aspirantes }) {
+  const { data: ses, error } = await supabase.from('examen_sesiones').insert({
+    nombre, tipo, faciles, medias, dificiles, duracion_min: duracionMin, activa: true,
+  }).select('id').single();
+  if (error) throw error;
+  if (aspirantes && aspirantes.length) {
+    const rows = aspirantes.map((a) => ({
+      nombre: a.nombre, hash: a.hash || null, discord: a.discord || null,
+      sesion_id: ses.id, examen_sesion_id: ses.id, estado: 'En curso',
+    }));
+    const { error: e2 } = await supabase.from('td_aspirantes').insert(rows);
+    if (e2) throw e2;
+  }
+  await loadAll();
+  return ses.id;
 }
 // Alta masiva de aspirantes permitidos (roster de la academia, sin Discord aún).
 export async function addAspirantesBulk(nombres, sesionId) {

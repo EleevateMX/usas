@@ -949,3 +949,8 @@ tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .portal-examen.ok .pe-pct { color: #8ff0cf; }
 .portal-examen.no .pe-pct { color: #ffb4b4; }
 .pe-msg { margin: 4px 0 0; font-size: 14px; }
+
+/* Aula — login centrado */
+.aula-lema.center { justify-content: center; margin: 2px 0 6px; }
+.ex-card.aula-login { text-align: center; }
+.ex-card.aula-login .auth-field { text-align: left; }

@@ -3,7 +3,7 @@
 //  Shell cache + stale-while-revalidate para recursos propios. Las llamadas a
 //  Supabase y CDNs van siempre a la red (datos frescos).
 // ===========================================================================
-const VERSION = 'usms-v6';
+const VERSION = 'usms-v7';
 const MANUALES = ['introduccion', 'imagen', 'comunicaciones', 'unidades', 'armamento',
   'generales', 'leo', 'corte', 'prision', 'byc', 'traslados', 'primeros_auxilios']
   .map((s) => `./assets/manuales/${s}.md`);
@@ -37,16 +37,16 @@ self.addEventListener('fetch', (e) => {
   // Otros orígenes (Supabase, esm.sh, Google Fonts): red directa, sin cachear datos.
   if (url.origin !== self.location.origin) return;
 
-  // Mismo origen: stale-while-revalidate.
+  // Mismo origen: network-first (siempre la versión más reciente cuando hay red),
+  // con caída a la caché para uso offline. Evita servir builds viejos.
   e.respondWith(
-    caches.open(VERSION).then(async (cache) => {
-      const cached = await cache.match(req);
-      const network = fetch(req).then((res) => {
-        if (res && res.status === 200 && res.type === 'basic') cache.put(req, res.clone());
-        return res;
-      }).catch(() => cached);
-      return cached || network;
-    })
+    fetch(req).then((res) => {
+      if (res && res.status === 200 && res.type === 'basic') {
+        const clone = res.clone();
+        caches.open(VERSION).then((cache) => cache.put(req, clone));
+      }
+      return res;
+    }).catch(() => caches.match(req))
   );
 });
 

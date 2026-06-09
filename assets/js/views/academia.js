@@ -4,8 +4,8 @@
 //  DUSMT y les dan seguimiento. El portal de estudio público es academia.html.
 // ===========================================================================
 import { getState, esTD, addModulo, updateModulo, removeModulo,
-  addAspirante, addAspirantesBulk, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
-  addAnuncio, updateAnuncio, removeAnuncio } from '../store.js';
+  addAspirante, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
+  addAnuncio, updateAnuncio, removeAnuncio, crearAcademiaConRoster } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate, fmtDateTime } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -38,8 +38,8 @@ export function viewAcademia() {
       el('h2', {}, 'Programa Académico — Training Division'),
       gestor ? el('div', { class: 'row gap' }, [
         el('button', { class: 'btn ghost ic', onClick: () => openAnuncio() }, [icon('plus', 15), 'Anuncio']),
-        el('button', { class: 'btn navy ic', onClick: () => openAspirante() }, [icon('plus', 15), 'Lista de aspirantes']),
-        el('button', { class: 'btn gold ic', onClick: () => openModulo() }, [icon('plus', 15), 'Módulo / día']),
+        el('button', { class: 'btn ghost ic', onClick: () => openModulo() }, [icon('plus', 15), 'Módulo / día']),
+        el('button', { class: 'btn gold ic', onClick: () => openAgregarAcademia() }, [icon('plus', 15), 'Agregar Academia']),
       ]) : el('span', { class: 'muted small' }, 'Vista de solo lectura'),
     ]),
 
@@ -107,7 +107,8 @@ export function viewAcademia() {
     // Aspirantes
     el('div', { class: 'card no-pad' }, [
       el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('personal', 16), 'Aspirantes (DUSMT)']),
-        el('span', { class: 'muted small' }, 'progreso de estudio y seguimiento')]),
+        gestor ? el('button', { class: 'btn ghost small ic', onClick: () => openAspiranteIndividual() }, [icon('plus', 13), 'Aspirante'])
+          : el('span', { class: 'muted small' }, 'progreso de estudio y seguimiento')]),
       s.tdAspirantes.length
         ? el('table', { class: 'tbl rows' }, [
             el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), el('th', {}, 'Discord'), el('th', {}, 'Estado'),
@@ -332,9 +333,18 @@ function openAnuncio(an = null) {
   modal(edit ? 'Editar anuncio' : 'Nuevo anuncio', body, { wide: true });
 }
 
-// -------------------- Roster de aspirantes (lista permitida) ----------------
-// Solo quienes estén en esta lista podrán registrarse en el aula.
-function openAspirante() {
+// ----------------------------- Agregar Academia ----------------------------
+// Crea una academia y precarga su roster: cada aspirante queda listo para
+// ingresar al aula con su Nombre_Apellido + #HASH# (sin registrarse).
+const TIPOS_AC = { rapida: 'Academia Rápida (AMTP)', convencional: 'Academia Convencional', reingreso: 'Reingreso', custom: 'Personalizado' };
+const PRESETS_AC = {
+  rapida: { faciles: 10, medias: 10, dificiles: 6, duracionMin: 20 },
+  convencional: { faciles: 8, medias: 10, dificiles: 8, duracionMin: 25 },
+  reingreso: { faciles: 14, medias: 5, dificiles: 2, duracionMin: 15 },
+  custom: { faciles: 10, medias: 8, dificiles: 6, duracionMin: 20 },
+};
+
+function openAgregarAcademia() {
   const s = getState();
   const yaNombres = new Set(s.tdAspirantes.map((a) => clave(a.nombre)));
   const dusmt = s.personal
@@ -342,45 +352,91 @@ function openAspirante() {
     .filter((p) => !yaNombres.has(clave(p.nombre)))
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
 
-  const seleccion = new Set();
+  const f = {};
+  f.nombre = el('input', { placeholder: 'Ej.: Academia XI' });
+  f.tipo = el('select', {}, Object.entries(TIPOS_AC).map(([v, l]) => el('option', { value: v }, l)));
+
+  const seleccion = new Map(); // nombre -> {nombre, hash, discord}
   const lista = dusmt.length
     ? el('div', { class: 'chk-grid' }, dusmt.map((p) => {
         const cb = el('input', { type: 'checkbox' });
-        cb.addEventListener('change', () => { cb.checked ? seleccion.add(p.nombre) : seleccion.delete(p.nombre); });
-        return el('label', { class: 'chk' }, [cb, el('span', {}, `${p.nombre} · placa ${p.placa ?? '—'}`)]);
+        cb.addEventListener('change', () => { cb.checked ? seleccion.set(p.nombre, { nombre: p.nombre, hash: p.hash || '', discord: p.discordId || '' }) : seleccion.delete(p.nombre); });
+        return el('label', { class: 'chk' }, [cb, el('span', {}, [el('strong', {}, p.nombre),
+          el('span', { class: 'muted small' }, p.hash ? ` · ${p.hash}` : ' · sin #HASH#')])]);
       }))
-    : el('p', { class: 'muted small' }, 'No hay mariscales con rango DUSMT libres para agregar. Créalos en Personal o usa la lista manual.');
+    : el('p', { class: 'muted small' }, 'No hay mariscales DUSMT libres. Créalos en Personal o usa la lista manual.');
 
-  const manual = el('textarea', { rows: '4', placeholder: 'Un Nombre_Apellido por línea…' });
+  const manual = el('textarea', { rows: '3', placeholder: 'Manual, uno por línea:\nNombre_Apellido | #HASH#' });
 
   async function save() {
-    const manualNombres = manual.value.split('\n').map((x) => x.trim()).filter((x) => x.length >= 3);
-    const todos = [...seleccion, ...manualNombres];
-    // Dedupe contra lo ya existente y entre sí.
+    const nombre = f.nombre.value.trim();
+    if (!nombre) return toast('Ponle nombre a la academia', 'err');
+    const manualList = manual.value.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+      const [n, h] = l.split('|').map((x) => (x || '').trim());
+      return { nombre: n, hash: h || '', discord: '' };
+    }).filter((x) => x.nombre.length >= 3);
+
     const vistos = new Set(yaNombres);
-    const nuevos = [];
-    for (const n of todos) { const k = clave(n); if (!vistos.has(k)) { vistos.add(k); nuevos.push(n); } }
-    if (!nuevos.length) return toast('No hay nombres nuevos para agregar', 'err');
-    try { await addAspirantesBulk(nuevos); toast(`${nuevos.length} aspirante(s) en la lista`); closeModal(); render(); }
-    catch (e) { toast(e.message, 'err'); }
+    const aspirantes = [];
+    for (const a of [...seleccion.values(), ...manualList]) {
+      const k = clave(a.nombre);
+      if (!vistos.has(k)) { vistos.add(k); aspirantes.push(a); }
+    }
+    const sinHash = aspirantes.filter((a) => !a.hash).map((a) => a.nombre);
+    const preset = PRESETS_AC[f.tipo.value] || PRESETS_AC.custom;
+    try {
+      await crearAcademiaConRoster({ nombre, tipo: f.tipo.value, ...preset, aspirantes });
+      toast(`Academia creada con ${aspirantes.length} aspirante(s)` + (sinHash.length ? ` · ${sinHash.length} sin #HASH#` : ''));
+      closeModal(); render();
+    } catch (e) { toast(e.message, 'err'); }
   }
 
   const body = el('div', {}, [
-    el('p', { class: 'muted small' }, 'Define quién puede registrarse en el aula. Solo los nombres de esta lista podrán crear su acceso; el resto será rechazado.'),
-    el('div', { class: 'card sub' }, [
-      el('h4', {}, [icon('personal', 14), ' Tomar de los DUSMT']),
-      lista,
+    el('p', { class: 'muted small' }, 'Crea la academia y su lista de aspirantes. Cada uno entrará al aula con su Nombre_Apellido y su #HASH# (sin registrarse). Los que no tengan #HASH# se agregan, pero no podrán entrar hasta asignárselo.'),
+    el('div', { class: 'form-grid' }, [
+      el('label', { class: 'field full' }, [el('span', {}, 'Nombre de la academia'), f.nombre]),
+      field('Tipo de examen', f.tipo),
     ]),
-    el('div', { class: 'card sub' }, [
-      el('h4', {}, [icon('plus', 14), ' Agregar manualmente']),
-      el('label', { class: 'field full' }, [el('span', {}, 'Nombres (uno por línea)'), manual]),
-    ]),
+    el('div', { class: 'card sub' }, [el('h4', {}, [icon('personal', 14), ' Tomar de los DUSMT']), lista]),
+    el('div', { class: 'card sub' }, [el('h4', {}, [icon('plus', 14), ' Agregar manualmente']),
+      el('label', { class: 'field full' }, [el('span', {}, 'Nombre_Apellido | #HASH#'), manual])]),
     el('div', { class: 'row gap end' }, [
       el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
-      el('button', { class: 'btn gold', onClick: save }, 'Agregar a la lista'),
+      el('button', { class: 'btn gold', onClick: save }, 'Crear academia'),
     ]),
   ]);
-  modal('Aspirantes permitidos', body, { wide: true });
+  modal('Agregar Academia', body, { wide: true });
+}
+
+// Alta individual de un aspirante a una academia existente.
+function openAspiranteIndividual() {
+  const s = getState();
+  const f = {};
+  f.nombre = el('input', { placeholder: 'Nombre_Apellido' });
+  f.hash = el('input', { placeholder: '#HASH#' });
+  f.discord = el('input', { placeholder: 'Discord (opcional)' });
+  f.sesion = el('select', {}, [el('option', { value: '' }, '— Academia (opcional) —'),
+    ...s.examenSesiones.map((x) => el('option', { value: x.id }, `${x.nombre}${x.activa ? '' : ' (cerrada)'}`))]);
+  async function save() {
+    if (f.nombre.value.trim().length < 3) return toast('Nombre completo', 'err');
+    if (f.hash.value.trim().length < 1) return toast('Indica el #HASH#', 'err');
+    try {
+      await addAspirante({ nombre: f.nombre.value.trim(), hash: f.hash.value.trim(), discord: f.discord.value.trim(),
+        sesionId: f.sesion.value || null, examenSesionId: f.sesion.value || null });
+      toast('Aspirante agregado'); closeModal(); render();
+    } catch (e) { toast(e.message, 'err'); }
+  }
+  const body = el('div', { class: 'form-grid' }, [
+    el('label', { class: 'field full' }, [el('span', {}, 'Nombre_Apellido'), f.nombre]),
+    field('#HASH# (contraseña de acceso)', f.hash),
+    field('Discord', f.discord),
+    el('label', { class: 'field full' }, [el('span', {}, 'Academia'), f.sesion]),
+    el('div', { class: 'row gap end full' }, [
+      el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
+      el('button', { class: 'btn gold', onClick: save }, 'Agregar'),
+    ]),
+  ]);
+  modal('Nuevo aspirante', body, { wide: true });
 }
 
 const clave = (s) => (s || '').toString().trim().toLowerCase().replace(/[_\s]+/g, ' ');

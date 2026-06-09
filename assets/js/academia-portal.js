@@ -1,8 +1,8 @@
 // ===========================================================================
 //  USMS Training Division — Portal/Aula de estudio para aspirantes (DUSMT)
-//  Sin cuenta del panel. El aspirante se registra UNA vez (Nombre + #HASH# +
-//  Discord) y luego ingresa con Nombre + #HASH#. Sesión temporal por token:
-//  si la TD lo da de baja, pierde el acceso.
+//  Sin registro: la Training Division precarga a cada aspirante (Nombre +
+//  #HASH#) al crear la academia. El aspirante solo INGRESA con su Nombre +
+//  #HASH#. Sesión por token; si la TD lo da de baja, pierde el acceso.
 // ===========================================================================
 import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
@@ -23,45 +23,38 @@ async function api(accion, extra = {}) {
 }
 
 // ------------------------------- Acceso ------------------------------------
-function vistaAcceso(modo = 'login') {
+// Solo ingreso (sin registro): el aspirante se precarga desde el panel TD.
+function vistaAcceso() {
   const nombre = el('input', { type: 'text', placeholder: 'Nombre_Apellido' });
   const hash = el('input', { type: 'text', placeholder: '#HASH#' });
-  const discord = el('input', { type: 'text', placeholder: 'Usuario de Discord' });
-  const esReg = modo === 'registro';
-  const btn = el('button', { class: 'btn gold full', onClick: enviar }, esReg ? 'Registrarme' : 'Ingresar');
+  const btn = el('button', { class: 'btn gold full', onClick: entrar }, 'Entrar al aula');
 
-  async function enviar() {
+  async function entrar() {
     if (nombre.value.trim().length < 3) return toast('Escribe tu Nombre_Apellido.', 'err');
-    if (hash.value.trim().length < 2) return toast('Escribe tu #HASH#.', 'err');
-    if (esReg && discord.value.trim().length < 2) return toast('Escribe tu Discord.', 'err');
-    btn.disabled = true; btn.textContent = 'Procesando…';
+    if (hash.value.trim().length < 1) return toast('Escribe tu #HASH#.', 'err');
+    btn.disabled = true; btn.textContent = 'Entrando…';
     try {
-      const r = esReg
-        ? await api('registrar', { nombre: nombre.value.trim(), hash: hash.value.trim(), discord: discord.value.trim() })
-        : await api('login', { nombre: nombre.value.trim(), hash: hash.value.trim() });
+      const r = await api('login', { nombre: nombre.value.trim(), hash: hash.value.trim() });
       estado.token = r.token;
       localStorage.setItem(LS_KEY, r.token);
       await cargar();
-    } catch (e) { toast(e.message || 'No se pudo acceder.', 'err'); btn.disabled = false; btn.textContent = esReg ? 'Registrarme' : 'Ingresar'; }
+    } catch (e) { toast(e.message || 'No se pudo entrar.', 'err'); btn.disabled = false; btn.textContent = 'Entrar al aula'; }
   }
-  [nombre, hash, discord].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') enviar(); }));
+  [nombre, hash].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); }));
 
-  const tab = (lbl, m) => el('button', { class: 'aula-tab' + (m === modo ? ' on' : ''), onClick: () => vistaAcceso(m) }, lbl);
-
-  montar(el('div', { class: 'ex-card' }, [
-    el('div', { class: 'ex-brand' }, [sealImg(86),
+  montar(el('div', { class: 'ex-card aula-login' }, [
+    el('div', { class: 'ex-brand' }, [sealImg(92),
       el('div', { class: 'brand-title xl' }, 'AULA DUSMT'),
-      el('div', { class: 'brand-sub' }, 'Training Division · Portal de estudio')]),
-    el('div', { class: 'aula-tabs' }, [tab('Ingresar', 'login'), tab('Registrarme', 'registro')]),
-    el('p', { class: 'muted small center' }, esReg
-      ? 'Regístrate una sola vez. Debes estar en la lista de aspirantes de la academia; tu #HASH# será tu llave de acceso, guárdalo.'
-      : 'Ingresa con tu Nombre_Apellido y tu #HASH#. Tu Discord no se pide al ingresar, por seguridad.'),
+      el('div', { class: 'brand-sub' }, 'U.S. Marshals National Training Academy')]),
+    el('div', { class: 'aula-lema center' }, [
+      el('span', { class: 'lema-chip' }, 'Justicia'), el('span', { class: 'lema-chip' }, 'Integridad'), el('span', { class: 'lema-chip' }, 'Servicio'),
+    ]),
+    el('div', { class: 'auth-divider' }, [el('span', {}, 'ACCESO DE ASPIRANTE')]),
+    el('p', { class: 'muted small center' }, 'Ingresa con tu Nombre_Apellido y tu #HASH# (tu identificador de personaje). La Training Division registra tu acceso antes de la academia.'),
     el('label', { class: 'auth-field' }, [el('span', { class: 'auth-lbl' }, 'Nombre y Apellido'),
       el('div', { class: 'auth-input' }, [icon('user', 16), nombre])]),
-    el('label', { class: 'auth-field' }, [el('span', { class: 'auth-lbl' }, '#HASH#'),
+    el('label', { class: 'auth-field' }, [el('span', { class: 'auth-lbl' }, '#HASH# (contraseña)'),
       el('div', { class: 'auth-input' }, [icon('shield', 16), hash])]),
-    esReg ? el('label', { class: 'auth-field' }, [el('span', { class: 'auth-lbl' }, 'Discord'),
-      el('div', { class: 'auth-input' }, [icon('miembros', 16), discord])]) : null,
     btn,
     el('div', { class: 'auth-foot' }, 'U.S. Marshals Service · GTAHUB Roleplay'),
   ]));
@@ -74,7 +67,7 @@ async function cargar() {
   catch (e) {
     toast(e.message || 'Sesión no válida.', 'err');
     localStorage.removeItem(LS_KEY); estado = { token: '', data: null };
-    vistaAcceso('login');
+    vistaAcceso();
   }
 }
 
@@ -270,12 +263,12 @@ async function toggle(moduloId, completado, btn) {
 function salir() {
   localStorage.removeItem(LS_KEY);
   estado = { token: '', data: null };
-  vistaAcceso('login');
+  vistaAcceso();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const t = localStorage.getItem(LS_KEY);
-  if (t) { estado.token = t; cargar(); } else { vistaAcceso('login'); }
+  if (t) { estado.token = t; cargar(); } else { vistaAcceso(); }
 });
 
 if ('serviceWorker' in navigator) {
