@@ -45,33 +45,48 @@ export function icon(name, size = 18) {
   return span;
 }
 
-// Insignia / estrella del U.S. Marshal (5 puntas, anillo dorado, disco navy).
+// Insignia / estrella del U.S. Marshal (escudo: anillo dorado con texto curvo,
+// borde de cuentas, estrella de 5 puntas biselada y medallón central).
 export function marshalBadge(size = 96) {
   const span = document.createElement('span');
   span.className = 'marshal-badge';
   span.innerHTML = `
-<svg viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="U.S. Marshal">
+<svg viewBox="0 0 120 120" width="${size}" height="${size}" role="img" aria-label="U.S. Marshals Service">
   <defs>
-    <radialGradient id="mb-gold" cx="38%" cy="30%" r="75%">
-      <stop offset="0%" stop-color="#f7e4a0"/>
-      <stop offset="45%" stop-color="#e6c25a"/>
-      <stop offset="100%" stop-color="#b8902c"/>
+    <radialGradient id="mb-rim" cx="40%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#f9eab0"/>
+      <stop offset="45%" stop-color="#e3bf52"/>
+      <stop offset="100%" stop-color="#9c7421"/>
     </radialGradient>
-    <radialGradient id="mb-navy" cx="50%" cy="38%" r="70%">
-      <stop offset="0%" stop-color="#16233f"/>
+    <radialGradient id="mb-face" cx="50%" cy="36%" r="72%">
+      <stop offset="0%" stop-color="#1a2942"/>
       <stop offset="100%" stop-color="#070b16"/>
     </radialGradient>
+    <linearGradient id="mb-star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbf0c0"/>
+      <stop offset="42%" stop-color="#e9c860"/>
+      <stop offset="100%" stop-color="#b8902c"/>
+    </linearGradient>
+    <path id="mb-top" d="M 16,60 A 44,44 0 0 1 104,60" fill="none"/>
+    <path id="mb-bot" d="M 16,60 A 44,44 0 0 0 104,60" fill="none"/>
   </defs>
-  <circle cx="50" cy="50" r="48" fill="url(#mb-gold)"/>
-  <circle cx="50" cy="50" r="44" fill="url(#mb-navy)"/>
-  <circle cx="50" cy="50" r="44" fill="none" stroke="#e6c25a" stroke-width="0.8" stroke-dasharray="1.1 2.4" opacity="0.7"/>
-  <g fill="#e8edf6" font-family="Oswald, sans-serif" text-anchor="middle">
-    <text x="50" y="20" font-size="7.5" letter-spacing="1.4">U.S. MARSHAL</text>
-    <text x="50" y="86" font-size="5.6" letter-spacing="1.2" fill="#8a97b1">SAN ANDREAS</text>
+
+  <circle cx="60" cy="60" r="58" fill="url(#mb-rim)"/>
+  <circle cx="60" cy="60" r="58" fill="none" stroke="#7c5e1a" stroke-width="0.8" opacity="0.6"/>
+  <circle cx="60" cy="60" r="52" fill="url(#mb-face)"/>
+  <circle cx="60" cy="60" r="48.5" fill="none" stroke="#e3bf52" stroke-width="1.6"/>
+  <circle cx="60" cy="60" r="45" fill="none" stroke="#e3bf52" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.2 3.1" opacity="0.85"/>
+
+  <g fill="#f2e6b8" font-family="Oswald, sans-serif" font-weight="600" letter-spacing="1.0">
+    <text font-size="6.8"><textPath href="#mb-top" startOffset="50%" text-anchor="middle">U.S. MARSHALS SERVICE</textPath></text>
+    <text font-size="6.8" fill="#9fb0cc"><textPath href="#mb-bot" startOffset="50%" text-anchor="middle">SAN ANDREAS</textPath></text>
   </g>
-  <polygon points="50,23 56.47,41.1 75.68,41.66 60.46,53.4 65.87,71.84 50,61 34.13,71.84 39.54,53.4 24.32,41.66 43.53,41.1"
-    fill="url(#mb-gold)" stroke="#8a6a1e" stroke-width="0.6" stroke-linejoin="round"/>
-  <circle cx="50" cy="49" r="4.6" fill="#0b1120" stroke="#e6c25a" stroke-width="0.8"/>
+
+  <polygon points="60,34 65.88,49.91 82.83,50.58 69.51,61.09 74.11,77.42 60,68 45.89,77.42 50.49,61.09 37.17,50.58 54.12,49.91"
+    fill="url(#mb-star)" stroke="#7c5e1a" stroke-width="0.9" stroke-linejoin="round"/>
+  <polygon points="60,40 64,50.5 75,51 65.5,59 69,70 60,63.5 51,70 54.5,59 45,51 56,50.5"
+    fill="none" stroke="#fcf3cf" stroke-width="0.5" opacity="0.5" stroke-linejoin="round"/>
+  <circle cx="60" cy="58.5" r="4.4" fill="#0b1120" stroke="#e9c860" stroke-width="1"/>
 </svg>`;
   return span;
 }

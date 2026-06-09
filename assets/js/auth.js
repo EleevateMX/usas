@@ -62,7 +62,7 @@ export async function viewLogin(onDone) {
     ]),
     el('div', { class: 'auth-divider' }, [el('span', {}, iniciado ? 'ACCESO AUTORIZADO' : 'PRIMER ACCESO')]),
     el('p', { class: 'muted small center' }, iniciado
-      ? 'Acceso restringido al liderazgo. Inicia sesión con tu cuenta.'
+      ? 'Acceso para Directiva (U.S. Marshal) y Supervisory Staff (CDUSM · SDUSM II · SDUSM I).'
       : 'Crea la cuenta del Director de la agencia para inicializar el sistema.'),
     el('div', { class: 'auth-form' }, [
       field('Correo', 'user', email),

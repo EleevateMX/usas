@@ -69,7 +69,7 @@ async function enterApp() {
 async function showGate() {
   elById('shell').style.display = 'none';
   const gate = elById('gate');
-  gate.style.display = 'block';
+  gate.style.display = 'grid';
   gate.innerHTML = '';
   gate.append(await viewLogin(async () => {
     const s = await getSession();
