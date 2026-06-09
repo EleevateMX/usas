@@ -1,0 +1,42 @@
+name: Deploy a GitHub Pages
+
+# Despliega el sitio estático (USMS Control) a GitHub Pages en cada push
+# a la rama de trabajo, y también permite ejecutarlo manualmente.
+on:
+  push:
+    branches:
+      - claude/elegant-archimedes-6gqhdj
+  workflow_dispatch:
+
+# Permisos que necesita el deploy oficial de Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Solo un despliegue a la vez; cancela los anteriores en curso.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir artefacto (sitio completo)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
