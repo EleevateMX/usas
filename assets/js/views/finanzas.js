@@ -47,7 +47,7 @@ export function viewFinanzas() {
                 el('td', { class: 'right nowrap' }, [
                   el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openForm(m) }, '✎'),
                   el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-                    confirmDialog('¿Eliminar este movimiento?', () => { removeMovimiento(m.id); toast('Movimiento eliminado'); render(); }) }, '🗑'),
+                    confirmDialog('¿Eliminar este movimiento?', async () => { try { await removeMovimiento(m.id); toast('Movimiento eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
                 ]),
               ]))),
             ])
@@ -95,16 +95,18 @@ function openForm(m = null) {
     ]),
   ]);
 
-  function save() {
+  async function save() {
     const data = {
       tipo: f.tipo.value, monto: +f.monto.value || 0, fecha: f.fecha.value,
       categoria: f.categoria.value, concepto: f.concepto.value.trim(),
       responsable: f.responsable.value.trim(),
     };
     if (data.monto <= 0) return toast('Ingresa un monto válido', 'err');
-    if (edit) { updateMovimiento(m.id, data); toast('Movimiento actualizado'); }
-    else { addMovimiento(data); toast('Movimiento registrado'); }
-    closeModal(); render();
+    try {
+      if (edit) { await updateMovimiento(m.id, data); toast('Movimiento actualizado'); }
+      else { await addMovimiento(data); toast('Movimiento registrado'); }
+      closeModal(); render();
+    } catch (e) { toast(e.message, 'err'); }
   }
 
   modal(edit ? 'Editar movimiento' : 'Nuevo movimiento', body, { wide: true });

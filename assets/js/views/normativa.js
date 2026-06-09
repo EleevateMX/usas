@@ -1,4 +1,4 @@
-import { getState, updateArticulo, addArticulo, removeArticulo, restoreNormativa } from '../store.js';
+import { getState, updateArticulo, addArticulo, removeArticulo, esDirectiva } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge } from '../ui.js';
 import { rangoSancion } from '../matcher.js';
 import { SEVERIDAD } from '../normativa-seed.js';
@@ -15,6 +15,7 @@ function listaFiltrada() {
 }
 
 function artCard(a) {
+  const puedeEditar = esDirectiva();
   return el('div', { class: 'card norm' + (a.activo === false ? ' off' : '') }, [
     el('div', { class: 'row between' }, [
       el('div', {}, [el('strong', {}, a.titulo),
@@ -24,11 +25,11 @@ function artCard(a) {
     el('p', { class: 'muted small' }, a.resumen),
     el('div', { class: 'row between' }, [
       el('div', { class: 'chips' }, a.tags.slice(0, 6).map((t) => el('span', { class: 'chip' }, t))),
-      el('div', { class: 'nowrap' }, [
+      puedeEditar ? el('div', { class: 'nowrap' }, [
         el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openArt(a) }, '✎'),
         el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-          confirmDialog(`¿Eliminar ${a.titulo}?`, () => { removeArticulo(a.id); toast('Artículo eliminado'); render(); }) }, '🗑'),
-      ]),
+          confirmDialog(`¿Eliminar ${a.titulo}?`, async () => { try { await removeArticulo(a.id); toast('Artículo eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
+      ]) : null,
     ]),
   ]);
 }
@@ -50,12 +51,9 @@ export function viewNormativa() {
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Normativa Interna'),
-      el('div', { class: 'row gap' }, [
-        el('button', { class: 'btn ghost small', onClick: () => confirmDialog(
-          'Esto reemplazará la normativa actual por la versión original del documento. ¿Continuar?',
-          () => { restoreNormativa(); toast('Normativa restaurada'); render(); }) }, '↺ Restaurar'),
-        el('button', { class: 'btn gold', onClick: () => openArt() }, '+ Nuevo artículo'),
-      ]),
+      esDirectiva()
+        ? el('button', { class: 'btn gold', onClick: () => openArt() }, '+ Nuevo artículo')
+        : el('span', { class: 'muted small' }, 'Edición restringida a Directive+'),
     ]),
 
     el('div', { class: 'row gap wrap filters' }, [
@@ -97,7 +95,7 @@ function openArt(a = null) {
     ]),
   ]);
 
-  function save() {
+  async function save() {
     const data = {
       titulo: f.titulo.value.trim(),
       libro: f.libro.value.trim() || 'Personalizado',
@@ -109,9 +107,11 @@ function openArt(a = null) {
     };
     if (!data.titulo) return toast('El título es obligatorio', 'err');
     if (data.sevMax < data.sevMin) [data.sevMin, data.sevMax] = [data.sevMax, data.sevMin];
-    if (edit) { updateArticulo(a.id, data); toast('Artículo actualizado'); }
-    else { addArticulo(data); toast('Artículo creado'); }
-    closeModal(); render();
+    try {
+      if (edit) { await updateArticulo(a.id, data); toast('Artículo actualizado'); }
+      else { await addArticulo(data); toast('Artículo creado'); }
+      closeModal(); render();
+    } catch (e) { toast(e.message, 'err'); }
   }
 
   modal(edit ? 'Editar artículo' : 'Nuevo artículo', body, { wide: true });

@@ -1,33 +1,51 @@
 # U.S. Marshals Service — Centro de Mando (GTAHUB Roleplay)
 
-Sistema interno de **control de personal, tesorería y Asuntos Internos** para el
-liderazgo del U.S. Marshals Service en GTA V Roleplay (GTAHUB). Diseño oscuro
-estilo GTAHUB fusionado con la identidad de los U.S. Marshals (navy, oro y la
-estrella de mariscal).
+Sistema interno **multi-usuario** de control de personal, tesorería y Asuntos
+Internos para el liderazgo del U.S. Marshals Service en GTA V Roleplay (GTAHUB).
+Diseño oscuro estilo GTAHUB fusionado con la identidad de los U.S. Marshals
+(navy, oro y la estrella de mariscal).
 
-No requiere servidor ni instalación: es una aplicación web estática que corre
-en el navegador y guarda los datos localmente (`localStorage`). Puedes
-respaldar/compartir todo mediante exportación a JSON.
+Frontend estático **sin build** (HTML + JS modular + CSS) sobre **Supabase**
+(PostgreSQL + Auth + RLS). Los datos se sincronizan en la nube entre todo el
+liderazgo, con permisos por rango (cadena de mando).
 
 ---
 
 ## 🚀 Cómo usarlo
 
-**Opción A — abrir directo:** abre `index.html` en tu navegador.
-> Algunos navegadores bloquean *ES modules* sobre `file://`. Si la vista queda
-> en blanco, usa la Opción B.
+La app ya viene configurada contra el proyecto Supabase `usms-control`
+(ver `assets/js/config.js`). Solo necesitas servirla:
 
-**Opción B — servidor local (recomendado):**
 ```bash
-# Python
-python3 -m http.server 8080
-# o Node
+python3 -m http.server 8080      # luego entra a http://localhost:8080
+# o
 npx serve .
 ```
-Luego entra a `http://localhost:8080`.
 
-**Opción C — publicar gratis:** sube el repo a **GitHub Pages** (Settings →
-Pages → Deploy from branch). Queda accesible para todo tu liderazgo por URL.
+O publícala gratis en **GitHub Pages** / **Netlify** / **Vercel** (es estática)
+y compártela por URL con tu liderazgo.
+
+> Nota: requiere abrirse vía `http(s)://` (servidor), no con doble clic
+> `file://`, porque usa *ES modules* y autenticación.
+
+### Primer acceso (bootstrap del Director)
+La primera persona que entre verá **“Crear Director”**: la cuenta que registre
+se convierte automáticamente en **Director** de la agencia. A partir de ahí, el
+acceso queda restringido y los nuevos miembros se crean desde **Miembros**.
+
+---
+
+## 👥 Roles y permisos (cadena de mando)
+
+| Rol | Puede |
+|---|---|
+| **Supervisory** | Ver todo. Editar personal, tesorería y casos OPR. Registrar sanciones. |
+| **Directive** | Lo anterior + **editar la Normativa**. |
+| **Executive / Director** | Todo lo anterior + **crear miembros y asignar roles**. |
+
+El control lo imponen las políticas **RLS** de la base de datos (no solo la UI).
+La gestión de miembros usa una **Edge Function** (`crear-miembro`) que crea
+cuentas ya confirmadas; el primer registro es el bootstrap del Director.
 
 ---
 
@@ -35,86 +53,53 @@ Pages → Deploy from branch). Queda accesible para todo tu liderazgo por URL.
 
 | Módulo | Para qué sirve |
 |---|---|
-| **Centro de Mando** | KPIs: personal activo, balance de tesorería, casos OPR abiertos, strikes en plantilla, banderas de actividad (< 40 h/mes) y últimos casos. |
-| **Personal** | Alta/edición de mariscales: rango, divisiones, estado (Activo/Inactivo/LOA/Suspendido/Retired), horas del mes, advertencias y strikes. Búsqueda instantánea. |
-| **Tesorería** | Ingresos/egresos con categoría, responsable y fecha. Balance acumulado y resumen por categoría. |
-| **Asuntos Internos (OPR)** | Registra un reporte, describe la situación y el sistema **delimita automáticamente qué artículos de la normativa se vulneran**, con su rango de sanción. Imputa los que correspondan y registra la resolución. |
-| **Normativa** | Catálogo completo y **editable** de la normativa interna (≈115 artículos, Libros I–V). Es la fuente que alimenta el analizador de Asuntos Internos. |
-| **Respaldo** | Exporta/importa todos los datos en JSON y restablece la información. |
+| **Centro de Mando** | KPIs: personal activo, balance, casos OPR abiertos, strikes; banderas de actividad (< 40 h/mes) y últimos casos. |
+| **Personal** | Roster de mariscales + **historial disciplinario** por agente (🛡): registra advertencias/strikes citando artículos. |
+| **Tesorería** | Ingresos/egresos con categoría, balance y resumen. |
+| **Asuntos Internos (OPR)** | Describe el reporte → el sistema **delimita los artículos vulnerados** con su rango de sanción. Exporta el **explanatory** en texto (Art. 86). |
+| **Normativa** | Catálogo editable de ~124 artículos (Libros I–V). Edición restringida a Directive+. |
+| **Miembros** | Gestión de cuentas y roles (solo Executive/Director). |
+| **Respaldo** | Exporta una copia JSON de todos los datos. |
 
 ---
 
-## 🛡 Cómo funciona el analizador de infracciones
+## ⚖ Automatizaciones de la normativa
 
-En **Asuntos Internos → Nuevo reporte**:
-
-1. Describe la situación en lenguaje natural
-   (ej.: *"disparó armamento letal en una persecución sin grabación y agredió a un civil"*).
-2. Pulsa **Analizar situación**.
-3. El motor puntúa cada artículo por relevancia (etiquetas + coincidencia de
-   texto, ignorando acentos y mayúsculas) y muestra los más probables con su
-   **rango de sanción** (de "advertencia verbal" a "expulsión directa").
-4. Marca las infracciones que apliquen para imputarlas al caso y registra la
-   sanción final.
-
-> La sugerencia es **orientativa**; la resolución definitiva corresponde al
-> explanatory (Arts. 79–91). Cuando edites la normativa, el analizador usa
-> automáticamente la versión actualizada.
-
-### Mantener la normativa al día
-La normativa cambia con el tiempo. En **Normativa** puedes editar cualquier
-artículo (sanción mín./máx., resumen y **etiquetas**), crear artículos nuevos o
-desactivar los vencidos. Las **etiquetas** son las palabras clave que alimentan
-el analizador: cuantas más relevantes agregues, mejor detecta las infracciones.
-El botón **↺ Restaurar** vuelve a la versión original del documento.
+- **Contadores vigentes vs. históricos** (Art. 20): las advertencias salen de la
+  cuenta a los ~90 días; el historial completo nunca se borra.
+- **Medio strike automático** (Art. 84): al acumular 3 advertencias vigentes, el
+  sistema agrega `0.5 strike` y marca esas advertencias como saldadas.
+- **Analizador de infracciones**: puntúa los artículos por relevancia (etiquetas
+  + texto, ignorando acentos) y muestra el rango de sanción. Usa siempre la
+  normativa **vigente y editable** de la base de datos.
+- **Exportación de explanatory** con los artículos citados, listo para el
+  proceso disciplinario.
 
 ---
 
-## 💾 Datos y respaldo
-
-- Todo se guarda en el navegador del dispositivo (no se sube a ningún lado).
-- Usa **Respaldo → Descargar** para generar un `.json` y compartirlo con tu
-  equipo; cualquiera puede **Importar** ese archivo para trabajar con los mismos
-  datos.
-- Para edición simultánea entre varias personas, ver *Roadmap*.
-
----
-
-## 🗺 Roadmap / Recomendaciones
-
-- **Sincronización multi-usuario (Supabase):** migrar el `store` a una base de
-  datos para que todo el liderazgo edite en tiempo real con control de acceso
-  por rango. La capa de datos ya está aislada en `store.js` para facilitarlo.
-- **Historial disciplinario por agente:** vincular automáticamente los casos OPR
-  al expediente del mariscal y calcular vencimientos (Art. 20: advertencias a 3
-  meses, strikes a 90 días) y reincidencia (Art. 21).
-- **Cálculo automático de medio strike** por acumulación 3/3 advertencias
-  (Art. 84).
-- **Plantillas de explanatory** que exporten el caso con los artículos citados
-  (requisito formal del Art. 86).
-- **Control de inactividad** (Art. 13): alerta a los 7 días sin reportar.
-- **Roles y permisos** (Supervisory / Directive / Executive) según la cadena de
-  mando de la normativa.
-
----
-
-## 🧱 Estructura del proyecto
+## 🧱 Arquitectura
 
 ```
 index.html
 assets/
-  css/styles.css            Tema GTAHUB × U.S. Marshals
+  css/styles.css
   js/
-    app.js                  Bootstrap + navegación
-    router.js               Router por hash
-    store.js                Estado + persistencia (localStorage) + import/export
-    matcher.js              Motor de coincidencia de infracciones
-    normativa-seed.js       Catálogo semilla de la normativa (editable en la app)
-    ui.js                   Utilidades de interfaz (modal, toast, helpers)
-    views/                  dashboard · personal · finanzas · asuntos · normativa · respaldo
+    config.js            URL + clave pública de Supabase
+    supabase.js          Cliente Supabase (CDN, sin build)
+    auth.js              Login, bootstrap y sesión
+    store.js             Capa de datos (Supabase + caché en memoria)
+    matcher.js           Motor de coincidencia de infracciones
+    normativa-seed.js    Catálogo semilla (referencia; la fuente viva es la BD)
+    router.js / app.js   Router + arranque con gate de autenticación
+    ui.js                Utilidades (modal, toast, helpers)
+    views/               dashboard · personal · finanzas · asuntos · normativa · miembros · respaldo
 ```
 
-Sin dependencias ni paso de build: JavaScript moderno (ES modules) y CSS puro.
+### Base de datos (Supabase, proyecto `usms-control`)
+Tablas con RLS: `perfiles`, `personal`, `finanzas`, `normativa`, `casos`,
+`caso_articulos`, `sanciones`. Funciones: `mi_rol()`, `es_directiva()`,
+`es_admin()`, `sistema_iniciado()`, trigger `handle_new_user` (primer usuario =
+Director) y `guard_rol` (impide auto-ascensos). Edge Function: `crear-miembro`.
 
 ---
 

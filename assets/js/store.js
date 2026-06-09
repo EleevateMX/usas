@@ -1,179 +1,287 @@
 // ===========================================================================
-//  USMS Control — Capa de persistencia (localStorage)
+//  USMS Control — Capa de datos (Supabase + caché en memoria)
 //  ---------------------------------------------------------------------------
-//  Todo el estado vive en el navegador. Usa exportar/importar (JSON) para
-//  respaldar o compartir los datos con el resto del liderazgo.
+//  Carga todo el estado desde Supabase a una caché local para que las vistas
+//  lo lean de forma síncrona. Las mutaciones escriben en la base y refrescan.
 // ===========================================================================
+import { supabase } from './supabase.js';
 
-import { NORMATIVA_SEED } from './normativa-seed.js';
+const VENCE_DIAS = 90; // Art. 20: advertencias salen de la cuenta a los ~3 meses.
 
-const KEY = 'usms_control_v1';
-const VERSION = 1;
+let state = {
+  session: null,
+  perfil: null,
+  personal: [],
+  finanzas: [],
+  casos: [],
+  normativa: [],
+  sanciones: [],
+  perfiles: [],
+  meta: { nombreFaccion: 'U.S. Marshals Service' },
+};
 
-const DEFAULT_STATE = () => ({
-  version: VERSION,
-  personal: [],     // mariscales
-  finanzas: [],     // movimientos de tesorería
-  casos: [],        // casos de Asuntos Internos
-  normativa: structuredClone(NORMATIVA_SEED),
-  meta: { creado: new Date().toISOString(), nombreFaccion: 'U.S. Marshals Service' },
+const listeners = new Set();
+export function subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+function notify() { listeners.forEach((fn) => fn(state)); }
+export function getState() { return state; }
+
+// ------------------------------- Mapeos ------------------------------------
+const mapPersona = (r) => ({
+  id: r.id, nombre: r.nombre, numeroEmpleado: r.numero_empleado || '',
+  rango: r.rango, divisiones: r.divisiones || [], estado: r.estado,
+  fechaIngreso: r.fecha_ingreso, horasMes: Number(r.horas_mes) || 0,
+  notas: r.notas || '', advertencias: 0, strikes: 0,
+  advertenciasHist: 0, strikesHist: 0,
+});
+const mapMov = (r) => ({
+  id: r.id, fecha: r.fecha, tipo: r.tipo, categoria: r.categoria,
+  concepto: r.concepto || '', monto: Number(r.monto) || 0, responsable: r.responsable || '',
+});
+const mapArt = (r) => ({
+  id: r.id, libro: r.libro, capitulo: r.capitulo, titulo: r.titulo,
+  sevMin: r.sev_min, sevMax: r.sev_max, tags: r.tags || [],
+  resumen: r.resumen || '', activo: r.activo,
+});
+const mapCaso = (r) => ({
+  id: r.id, folio: r.folio, fecha: r.fecha,
+  denunciadoId: r.denunciado_id, denunciado: r.denunciado || '',
+  denunciante: r.denunciante || '', descripcion: r.descripcion || '',
+  estado: r.estado, resolucion: r.resolucion || '',
+  sancionAplicada: r.sancion_aplicada || '',
+  articulos: (r.caso_articulos || []).map((x) => x.articulo_id),
+});
+const mapSancion = (r) => ({
+  id: r.id, personaId: r.persona_id, casoId: r.caso_id, fecha: r.fecha,
+  tipo: r.tipo, cantidad: Number(r.cantidad) || 0, articuloId: r.articulo_id,
+  motivo: r.motivo || '', vencida: r.vencida,
+});
+const mapPerfil = (r) => ({
+  id: r.id, email: r.email, nombre: r.nombre, rol: r.rol, activo: r.activo,
 });
 
-let state = null;
-const listeners = new Set();
-
-function load() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return DEFAULT_STATE();
-    const parsed = JSON.parse(raw);
-    // Migración suave: garantiza que existan todas las claves.
-    return { ...DEFAULT_STATE(), ...parsed, meta: { ...DEFAULT_STATE().meta, ...(parsed.meta || {}) } };
-  } catch (e) {
-    console.error('No se pudo cargar el estado, se reinicia.', e);
-    return DEFAULT_STATE();
+// Recalcula advertencias/strikes vigentes de cada persona desde el historial.
+function computeContadores() {
+  const corte = new Date(Date.now() - VENCE_DIAS * 86400000);
+  for (const p of state.personal) {
+    const ss = state.sanciones.filter((s) => s.personaId === p.id);
+    p.advertenciasHist = ss.filter((s) => s.tipo === 'advertencia').reduce((a, s) => a + s.cantidad, 0);
+    p.strikesHist = ss.filter((s) => s.tipo === 'strike').reduce((a, s) => a + s.cantidad, 0);
+    p.advertencias = ss.filter((s) => s.tipo === 'advertencia' && !s.vencida && new Date(s.fecha) >= corte)
+      .reduce((a, s) => a + s.cantidad, 0);
+    p.strikes = ss.filter((s) => s.tipo === 'strike' && !s.vencida).reduce((a, s) => a + s.cantidad, 0);
   }
 }
 
-function persist() {
-  localStorage.setItem(KEY, JSON.stringify(state));
-  listeners.forEach((fn) => fn(state));
+// ------------------------------ Carga total --------------------------------
+export async function loadAll() {
+  const [personal, finanzas, normativa, casos, sanciones, perfiles] = await Promise.all([
+    supabase.from('personal').select('*').order('nombre'),
+    supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
+    supabase.from('normativa').select('*').order('orden'),
+    supabase.from('casos').select('*, caso_articulos(articulo_id)').order('created_at', { ascending: false }),
+    supabase.from('sanciones').select('*').order('fecha', { ascending: false }),
+    supabase.from('perfiles').select('*').order('created_at'),
+  ]);
+  state.personal = (personal.data || []).map(mapPersona);
+  state.finanzas = (finanzas.data || []).map(mapMov);
+  state.normativa = (normativa.data || []).map(mapArt);
+  state.casos = (casos.data || []).map(mapCaso);
+  state.sanciones = (sanciones.data || []).map(mapSancion);
+  state.perfiles = (perfiles.data || []).map(mapPerfil);
+  computeContadores();
+  notify();
 }
 
-export function getState() {
-  if (!state) state = load();
-  return state;
+// ------------------------------ Sesión / perfil ----------------------------
+export function setSession(session) { state.session = session; }
+export async function loadPerfil() {
+  if (!state.session) { state.perfil = null; return; }
+  const { data } = await supabase.from('perfiles').select('*').eq('id', state.session.user.id).single();
+  state.perfil = data ? mapPerfil(data) : null;
 }
+export const rolActual = () => state.perfil?.rol || null;
+export const esDirectiva = () => ['Directive', 'Executive', 'Director'].includes(rolActual());
+export const esAdmin = () => ['Executive', 'Director'].includes(rolActual());
 
-export function subscribe(fn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-export const uid = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-
-// ---------------------------- PERSONAL -------------------------------------
-export function addPersona(p) {
-  getState().personal.push({
-    id: uid(),
-    nombre: '',
-    numeroEmpleado: '',
-    rango: 'Deputy U.S. Marshal',
-    divisiones: [],
-    estado: 'Activo',
-    fechaIngreso: new Date().toISOString().slice(0, 10),
-    horasMes: 0,
-    advertencias: 0,
-    strikes: 0,
-    notas: '',
-    ...p,
+// ------------------------------- PERSONAL ----------------------------------
+export async function addPersona(p) {
+  const { error } = await supabase.from('personal').insert({
+    nombre: p.nombre, numero_empleado: p.numeroEmpleado, rango: p.rango,
+    divisiones: p.divisiones, estado: p.estado, fecha_ingreso: p.fechaIngreso,
+    horas_mes: p.horasMes, notas: p.notas,
   });
-  persist();
+  if (error) throw error;
+  await loadAll();
 }
-export function updatePersona(id, patch) {
-  const p = getState().personal.find((x) => x.id === id);
-  if (p) Object.assign(p, patch), persist();
+export async function updatePersona(id, p) {
+  const patch = {};
+  if ('nombre' in p) patch.nombre = p.nombre;
+  if ('numeroEmpleado' in p) patch.numero_empleado = p.numeroEmpleado;
+  if ('rango' in p) patch.rango = p.rango;
+  if ('divisiones' in p) patch.divisiones = p.divisiones;
+  if ('estado' in p) patch.estado = p.estado;
+  if ('fechaIngreso' in p) patch.fecha_ingreso = p.fechaIngreso;
+  if ('horasMes' in p) patch.horas_mes = p.horasMes;
+  if ('notas' in p) patch.notas = p.notas;
+  patch.updated_at = new Date().toISOString();
+  const { error } = await supabase.from('personal').update(patch).eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
-export function removePersona(id) {
-  state.personal = getState().personal.filter((x) => x.id !== id);
-  persist();
+export async function removePersona(id) {
+  const { error } = await supabase.from('personal').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
 
-// ---------------------------- FINANZAS -------------------------------------
-export function addMovimiento(m) {
-  getState().finanzas.push({
-    id: uid(),
-    fecha: new Date().toISOString().slice(0, 10),
-    tipo: 'ingreso',          // ingreso | egreso
-    categoria: 'General',
-    concepto: '',
-    monto: 0,
-    responsable: '',
-    ...m,
+// ------------------------------- SANCIONES ---------------------------------
+// Registra una sanción y aplica el medio strike automático del Art. 84 (3/3).
+export async function addSancion(s) {
+  const { error } = await supabase.from('sanciones').insert({
+    persona_id: s.personaId, caso_id: s.casoId || null, fecha: s.fecha,
+    tipo: s.tipo, cantidad: s.cantidad, articulo_id: s.articuloId || null, motivo: s.motivo || '',
   });
-  persist();
+  if (error) throw error;
+  await loadAll();
+  await aplicarMedioStrikeAuto(s.personaId, s.casoId, s.fecha);
 }
-export function updateMovimiento(id, patch) {
-  const m = getState().finanzas.find((x) => x.id === id);
-  if (m) Object.assign(m, patch), persist();
+export async function removeSancion(id) {
+  const { error } = await supabase.from('sanciones').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
-export function removeMovimiento(id) {
-  state.finanzas = getState().finanzas.filter((x) => x.id !== id);
-  persist();
+export async function setSancionVencida(id, vencida) {
+  const { error } = await supabase.from('sanciones').update({ vencida }).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+// Art. 84: por cada 3 advertencias vigentes, 1 medio strike (0.5). Convierte
+// las 3 advertencias en vencidas para no recontarlas.
+async function aplicarMedioStrikeAuto(personaId, casoId, fecha) {
+  const persona = state.personal.find((p) => p.id === personaId);
+  if (!persona || persona.advertencias < 3) return;
+  const vigentes = state.sanciones
+    .filter((s) => s.personaId === personaId && s.tipo === 'advertencia' && !s.vencida)
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  let acumulado = 0; const aVencer = [];
+  for (const s of vigentes) { if (acumulado >= 3) break; acumulado += s.cantidad; aVencer.push(s.id); }
+  if (acumulado < 3) return;
+  await supabase.from('sanciones').update({ vencida: true }).in('id', aVencer);
+  await supabase.from('sanciones').insert({
+    persona_id: personaId, caso_id: casoId || null, fecha: fecha || new Date().toISOString().slice(0, 10),
+    tipo: 'strike', cantidad: 0.5, motivo: 'Medio strike automático por acumulación 3/3 (Art. 84)',
+  });
+  await loadAll();
+}
+
+// ------------------------------- FINANZAS ----------------------------------
+export async function addMovimiento(m) {
+  const { error } = await supabase.from('finanzas').insert({
+    fecha: m.fecha, tipo: m.tipo, categoria: m.categoria,
+    concepto: m.concepto, monto: m.monto, responsable: m.responsable,
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateMovimiento(id, m) {
+  const { error } = await supabase.from('finanzas').update({
+    fecha: m.fecha, tipo: m.tipo, categoria: m.categoria,
+    concepto: m.concepto, monto: m.monto, responsable: m.responsable,
+  }).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeMovimiento(id) {
+  const { error } = await supabase.from('finanzas').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
 export function balance() {
-  return getState().finanzas.reduce(
-    (acc, m) => acc + (m.tipo === 'ingreso' ? +m.monto : -+m.monto), 0);
+  return state.finanzas.reduce((a, m) => a + (m.tipo === 'ingreso' ? m.monto : -m.monto), 0);
 }
 
-// ---------------------------- CASOS (IA) -----------------------------------
-export function addCaso(c) {
-  const n = getState().casos.length + 1;
-  getState().casos.push({
-    id: uid(),
-    folio: `OPR-${new Date().getFullYear()}-${String(n).padStart(3, '0')}`,
-    fecha: new Date().toISOString().slice(0, 10),
-    denunciado: '',
-    denunciante: '',
-    descripcion: '',
-    etiquetas: [],
-    articulos: [],          // ids de artículos imputados
-    estado: 'Abierto',      // Abierto | En análisis | Resuelto | Archivado
-    resolucion: '',
-    sancionAplicada: '',
-    ...c,
+// --------------------------------- CASOS -----------------------------------
+async function syncArticulos(casoId, articulos) {
+  await supabase.from('caso_articulos').delete().eq('caso_id', casoId);
+  if (articulos && articulos.length) {
+    await supabase.from('caso_articulos').insert(
+      articulos.map((a) => ({ caso_id: casoId, articulo_id: a })));
+  }
+}
+export async function addCaso(c) {
+  const n = state.casos.length + 1;
+  const folio = c.folio || `OPR-${new Date().getFullYear()}-${String(n).padStart(3, '0')}`;
+  const { data, error } = await supabase.from('casos').insert({
+    folio, fecha: c.fecha, denunciado_id: c.denunciadoId || null, denunciado: c.denunciado,
+    denunciante: c.denunciante, descripcion: c.descripcion, estado: c.estado,
+    resolucion: c.resolucion || '', sancion_aplicada: c.sancionAplicada || '',
+  }).select('id').single();
+  if (error) throw error;
+  await syncArticulos(data.id, c.articulos);
+  await loadAll();
+  return data.id;
+}
+export async function updateCaso(id, c) {
+  const { error } = await supabase.from('casos').update({
+    fecha: c.fecha, denunciado_id: c.denunciadoId || null, denunciado: c.denunciado,
+    denunciante: c.denunciante, descripcion: c.descripcion, estado: c.estado,
+    resolucion: c.resolucion || '', sancion_aplicada: c.sancionAplicada || '',
+  }).eq('id', id);
+  if (error) throw error;
+  if ('articulos' in c) await syncArticulos(id, c.articulos);
+  await loadAll();
+}
+export async function removeCaso(id) {
+  const { error } = await supabase.from('casos').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+// ------------------------------- NORMATIVA ---------------------------------
+export async function updateArticulo(id, a) {
+  const { error } = await supabase.from('normativa').update({
+    titulo: a.titulo, libro: a.libro, capitulo: a.capitulo,
+    sev_min: a.sevMin, sev_max: a.sevMax, tags: a.tags, resumen: a.resumen,
+    activo: a.activo, updated_at: new Date().toISOString(),
+  }).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function addArticulo(a) {
+  const id = a.id || ('x' + Date.now().toString(36));
+  const orden = (state.normativa.length || 0) + 1;
+  const { error } = await supabase.from('normativa').insert({
+    id, titulo: a.titulo, libro: a.libro, capitulo: a.capitulo,
+    sev_min: a.sevMin, sev_max: a.sevMax, tags: a.tags, resumen: a.resumen,
+    activo: a.activo, orden,
   });
-  persist();
+  if (error) throw error;
+  await loadAll();
 }
-export function updateCaso(id, patch) {
-  const c = getState().casos.find((x) => x.id === id);
-  if (c) Object.assign(c, patch), persist();
-}
-export function removeCaso(id) {
-  state.casos = getState().casos.filter((x) => x.id !== id);
-  persist();
+export async function removeArticulo(id) {
+  const { error } = await supabase.from('normativa').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
 
-// ---------------------------- NORMATIVA ------------------------------------
-export function updateArticulo(id, patch) {
-  const a = getState().normativa.find((x) => x.id === id);
-  if (a) Object.assign(a, patch), persist();
+// -------------------------------- PERFILES ---------------------------------
+export async function updatePerfil(id, patch) {
+  const { error } = await supabase.from('perfiles').update(patch).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+  if (id === state.session?.user?.id) await loadPerfil();
 }
-export function addArticulo(a) {
-  getState().normativa.push({
-    id: uid(),
-    libro: 'Personalizado',
-    capitulo: '',
-    titulo: '',
-    sevMin: 0,
-    sevMax: 1,
-    tags: [],
-    resumen: '',
-    activo: true,
-    ...a,
-  });
-  persist();
-}
-export function removeArticulo(id) {
-  state.normativa = getState().normativa.filter((x) => x.id !== id);
-  persist();
-}
-export function restoreNormativa() {
-  getState().normativa = structuredClone(NORMATIVA_SEED);
-  persist();
+export async function removePerfil(id) {
+  const { error } = await supabase.from('perfiles').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
 
-// ---------------------------- IMPORT / EXPORT ------------------------------
+// ------------------------------ Export / utils -----------------------------
 export function exportJSON() {
-  return JSON.stringify(getState(), null, 2);
-}
-export function importJSON(text) {
-  const data = JSON.parse(text);
-  state = { ...DEFAULT_STATE(), ...data };
-  persist();
-}
-export function resetAll() {
-  state = DEFAULT_STATE();
-  persist();
+  return JSON.stringify({
+    personal: state.personal, finanzas: state.finanzas, casos: state.casos,
+    normativa: state.normativa, sanciones: state.sanciones,
+    exportado: new Date().toISOString(),
+  }, null, 2);
 }

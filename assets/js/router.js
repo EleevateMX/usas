@@ -1,11 +1,12 @@
 // ===========================================================================
-//  USMS Control — Router por hash (sin dependencias)
+//  USMS Control — Router por hash
 // ===========================================================================
 import { viewDashboard } from './views/dashboard.js';
 import { viewPersonal } from './views/personal.js';
 import { viewFinanzas } from './views/finanzas.js';
 import { viewAsuntos } from './views/asuntos.js';
 import { viewNormativa } from './views/normativa.js';
+import { viewMiembros } from './views/miembros.js';
 import { viewRespaldo } from './views/respaldo.js';
 
 export const ROUTES = {
@@ -14,6 +15,7 @@ export const ROUTES = {
   '/finanzas':  { label: 'Tesorería',       icon: '💵', view: viewFinanzas },
   '/asuntos':   { label: 'Asuntos Internos',icon: '🛡', view: viewAsuntos },
   '/normativa': { label: 'Normativa',        icon: '📖', view: viewNormativa },
+  '/miembros':  { label: 'Miembros',         icon: '🔑', view: viewMiembros, soloAdmin: true },
   '/respaldo':  { label: 'Respaldo',         icon: '💾', view: viewRespaldo },
 };
 
@@ -34,7 +36,6 @@ export function render() {
     app.append(Object.assign(document.createElement('div'),
       { className: 'card', textContent: 'Error al renderizar la vista: ' + e.message }));
   }
-  // Resalta el ítem activo en el menú.
   document.querySelectorAll('.nav-item').forEach((n) =>
     n.classList.toggle('active', n.dataset.path === path));
   document.title = `USMS · ${ROUTES[path].label}`;

@@ -61,8 +61,8 @@ export function viewDashboard() {
 
     el('div', { class: 'card welcome' }, [
       el('h3', {}, `Centro de Mando — ${s.meta.nombreFaccion}`),
-      el('p', { class: 'muted' }, 'Panel de control de personal, tesorería y Asuntos Internos. Los datos se guardan localmente en este navegador; usa Respaldo para exportar/importar y compartir con tu liderazgo.'),
-      el('p', { class: 'muted small' }, `Última actualización de la normativa: ${fmtDate(s.meta.creado)} · ${s.normativa.length} artículos.`),
+      el('p', { class: 'muted' }, 'Panel de control de personal, tesorería y Asuntos Internos. Los datos se sincronizan en la nube (Supabase) entre todo el liderazgo según los permisos de cada rango.'),
+      el('p', { class: 'muted small' }, `Normativa vigente: ${s.normativa.length} artículos · Sesión: ${s.perfil?.nombre || ''} (${s.perfil?.rol || '—'}).`),
     ]),
   ]);
 }

@@ -44,9 +44,10 @@ function casoCard(c, s) {
       : el('div', { class: 'muted small' }, 'Sin artículos imputados aún.'),
     c.sancionAplicada ? el('div', { class: 'sanc' }, ['Sanción: ', el('strong', {}, c.sancionAplicada)]) : null,
     el('div', { class: 'row gap end' }, [
+      el('button', { class: 'btn ghost small', onClick: () => exportarExplanatory(c, s) }, '📄 Explanatory'),
       el('button', { class: 'btn ghost small', onClick: () => openCaso(c) }, 'Abrir / Analizar'),
       el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-        confirmDialog(`¿Eliminar el caso ${c.folio}?`, () => { removeCaso(c.id); toast('Caso eliminado'); render(); }) }, '🗑'),
+        confirmDialog(`¿Eliminar el caso ${c.folio}?`, async () => { try { await removeCaso(c.id); toast('Caso eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
     ]),
   ]);
 }
@@ -130,9 +131,12 @@ function openCaso(c = null) {
     ]),
   ]);
 
-  function save() {
+  async function save() {
+    const nombre = f.denunciado.value.trim();
+    const persona = getState().personal.find((p) => p.nombre === nombre);
     const data = {
-      denunciado: f.denunciado.value.trim(),
+      denunciado: nombre,
+      denunciadoId: persona ? persona.id : null,
       denunciante: f.denunciante.value.trim(),
       fecha: f.fecha.value,
       estado: f.estado.value,
@@ -141,14 +145,51 @@ function openCaso(c = null) {
       sancionAplicada: f.sancionAplicada.value.trim(),
     };
     if (!data.descripcion) return toast('Describe la situación', 'err');
-    if (edit) { updateCaso(c.id, data); toast('Caso actualizado'); }
-    else { addCaso(data); toast('Caso creado'); }
-    closeModal(); render();
+    try {
+      if (edit) { await updateCaso(c.id, data); toast('Caso actualizado'); }
+      else { await addCaso(data); toast('Caso creado'); }
+      closeModal(); render();
+    } catch (e) { toast(e.message, 'err'); }
   }
 
   // Si edita un caso con descripción, analiza automáticamente.
   modal(edit ? `${d.folio} — Análisis` : 'Nuevo reporte OPR', body, { wide: true });
   if (edit && desc.value.trim()) analizar();
+}
+
+// Genera y descarga el explanatory en texto, citando los artículos (Art. 86).
+function exportarExplanatory(c, s) {
+  const arts = (c.articulos || []).map((id) => s.normativa.find((a) => a.id === id)).filter(Boolean);
+  const L = [];
+  L.push('UNITED STATES MARSHALS SERVICE — OFFICE OF PROFESSIONAL RESPONSIBILITY');
+  L.push('EXPLANATORY DE CONDUCTA — DOCUMENTO INTERNO Y CONFIDENCIAL');
+  L.push('='.repeat(70));
+  L.push(`Folio:        ${c.folio}`);
+  L.push(`Fecha:        ${c.fecha}`);
+  L.push(`Denunciado:   ${c.denunciado || '—'}`);
+  L.push(`Denunciante:  ${c.denunciante || '—'}`);
+  L.push(`Estado:       ${c.estado}`);
+  L.push('');
+  L.push('1. DESCRIPCIÓN DE LA SITUACIÓN');
+  L.push(c.descripcion || '—');
+  L.push('');
+  L.push('2. ARTÍCULOS IMPUTADOS (motivo de la sanción)');
+  if (arts.length) arts.forEach((a) => {
+    L.push(`   • ${a.titulo}  [${rangoSancion(a)}]`);
+    L.push(`     ${a.libro} · ${a.capitulo}`);
+    L.push(`     ${a.resumen}`);
+  });
+  else L.push('   (Ninguno imputado)');
+  L.push('');
+  L.push('3. RESOLUCIÓN / SANCIÓN');
+  L.push(c.sancionAplicada || c.resolucion || '(Pendiente de resolución)');
+  L.push('');
+  L.push('-'.repeat(70));
+  L.push('Procedimiento sujeto a los Arts. 79-91 de la Normativa Interna.');
+  const blob = new Blob([L.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: `${c.folio}-explanatory.txt` });
+  document.body.append(a); a.click(); a.remove();
+  toast('Explanatory exportado');
 }
 
 function datalistInput(key, val, opciones, f) {
