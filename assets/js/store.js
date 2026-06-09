@@ -26,6 +26,8 @@ let state = {
   tdSeguimiento: [],
   tdProgreso: [],
   tdAnuncios: [],
+  ascensoReglas: [],
+  ascensos: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -40,7 +42,7 @@ const mapPersona = (r) => ({
   placa: r.placa ?? null, hash: r.hash || '', telefono: r.telefono || '',
   discordId: r.discord_id || '', correo: r.correo || '',
   rango: r.rango, divisiones: r.divisiones || [], estado: r.estado,
-  fechaIngreso: r.fecha_ingreso, fechaSalida: r.fecha_salida,
+  fechaIngreso: r.fecha_ingreso, fechaSalida: r.fecha_salida, fechaAscenso: r.fecha_ascenso,
   ultimaActividad: r.ultima_actividad, horasMes: Number(r.horas_mes) || 0,
   equipo: r.equipo || {}, expedientes: r.expedientes || '',
   notas: r.notas || '', advertencias: 0, strikes: 0,
@@ -106,6 +108,14 @@ const mapAnuncio = (r) => ({
   id: r.id, titulo: r.titulo, contenido: r.contenido || '', autor: r.autor || '',
   fijado: r.fijado, fecha: r.created_at,
 });
+const mapRegla = (r) => ({
+  rango: r.rango, orden: r.orden, diasMin: r.dias_min, horasMin: Number(r.horas_min) || 0, strikesMax: Number(r.strikes_max) || 0,
+});
+const mapAscenso = (r) => ({
+  id: r.id, personaId: r.persona_id, deRango: r.de_rango, aRango: r.a_rango, estado: r.estado,
+  motivo: r.motivo || '', proponente: r.proponente || '', aprobadoPor: r.aprobado_por || '',
+  fecha: r.created_at, resolvedAt: r.resolved_at,
+});
 const mapSeguimiento = (r) => ({
   id: r.id, aspiranteId: r.aspirante_id, autor: r.autor || '', moduloOrden: r.modulo_orden,
   tipo: r.tipo, contenido: r.contenido || '', visibleAspirante: r.visible_aspirante, fecha: r.created_at,
@@ -129,7 +139,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg, tdAnun] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg, tdAnun, ascReglas, ascList] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -145,6 +155,8 @@ export async function loadAll() {
     supabase.from('td_seguimiento').select('*').order('created_at', { ascending: false }),
     supabase.from('td_progreso').select('*'),
     supabase.from('td_anuncios').select('*').order('fijado', { ascending: false }).order('created_at', { ascending: false }),
+    supabase.from('ascenso_reglas').select('*').order('orden'),
+    supabase.from('ascensos').select('*').order('created_at', { ascending: false }),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -161,6 +173,8 @@ export async function loadAll() {
   state.tdSeguimiento = (tdSeg.data || []).map(mapSeguimiento);
   state.tdProgreso = (tdProg.data || []).map(mapProgreso);
   state.tdAnuncios = (tdAnun.data || []).map(mapAnuncio);
+  state.ascensoReglas = (ascReglas.data || []).map(mapRegla);
+  state.ascensos = (ascList.data || []).map(mapAscenso);
   computeContadores();
   notify();
 }
@@ -219,6 +233,7 @@ function personaToRow(p) {
   if ('estado' in p) row.estado = p.estado;
   if ('fechaIngreso' in p) row.fecha_ingreso = p.fechaIngreso || null;
   if ('fechaSalida' in p) row.fecha_salida = p.fechaSalida || null;
+  if ('fechaAscenso' in p) row.fecha_ascenso = p.fechaAscenso || null;
   if ('ultimaActividad' in p) row.ultima_actividad = p.ultimaActividad || null;
   if ('horasMes' in p) row.horas_mes = p.horasMes;
   if ('equipo' in p) row.equipo = p.equipo;
@@ -547,6 +562,89 @@ export async function addSeguimiento(s) {
 }
 export async function removeSeguimiento(id) {
   const { error } = await supabase.from('td_seguimiento').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+// -------------------------------- ASCENSOS ---------------------------------
+export const RANGOS_ORDEN = ['DUSMT', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV', 'SDUSM I', 'SDUSM II', 'CDUSM', 'U.S. Marshal'];
+export const siguienteRango = (r) => { const i = RANGOS_ORDEN.indexOf(r); return i >= 0 && i < RANGOS_ORDEN.length - 1 ? RANGOS_ORDEN[i + 1] : null; };
+
+// Ficha del roster vinculada al usuario que ha iniciado sesión (por correo).
+export const miFicha = () => {
+  const email = (state.perfil?.email || '').toLowerCase();
+  if (!email) return null;
+  return state.personal.find((p) => (p.correo || '').toLowerCase() === email) || null;
+};
+
+// Evalúa si una persona cumple los requisitos para ascender al siguiente rango.
+export function evaluarAscenso(p) {
+  const siguiente = siguienteRango(p.rango);
+  if (!siguiente) return null;
+  const regla = state.ascensoReglas.find((r) => r.rango === p.rango);
+  const base = p.fechaAscenso || p.fechaIngreso;
+  const dias = base ? Math.floor((Date.now() - new Date(base)) / 86400000) : 0;
+  const horas = +p.horasMes || 0;
+  const strikes = +p.strikes || 0;
+  const req = regla || { diasMin: 0, horasMin: 0, strikesMax: 0 };
+  const checks = {
+    dias: { ok: dias >= req.diasMin, val: dias, min: req.diasMin },
+    horas: { ok: horas >= req.horasMin, val: horas, min: req.horasMin },
+    strikes: { ok: strikes <= req.strikesMax, val: strikes, max: req.strikesMax },
+  };
+  return { siguiente, dias, checks, elegible: checks.dias.ok && checks.horas.ok && checks.strikes.ok };
+}
+
+export async function setRegla(rango, patch) {
+  const row = { rango };
+  if ('diasMin' in patch) row.dias_min = patch.diasMin;
+  if ('horasMin' in patch) row.horas_min = patch.horasMin;
+  if ('strikesMax' in patch) row.strikes_max = patch.strikesMax;
+  if ('orden' in patch) row.orden = patch.orden;
+  const { error } = await supabase.from('ascenso_reglas').upsert(row, { onConflict: 'rango' });
+  if (error) throw error;
+  await loadAll();
+}
+export async function setReglasBatch(list) {
+  const rows = list.map((r) => ({ rango: r.rango, orden: r.orden, dias_min: r.diasMin, horas_min: r.horasMin, strikes_max: r.strikesMax }));
+  const { error } = await supabase.from('ascenso_reglas').upsert(rows, { onConflict: 'rango' });
+  if (error) throw error;
+  await loadAll();
+}
+export async function proponerAscenso(a) {
+  const { error } = await supabase.from('ascensos').insert({
+    persona_id: a.personaId, de_rango: a.deRango, a_rango: a.aRango,
+    motivo: a.motivo || '', proponente: a.proponente || '', estado: 'Pendiente',
+  });
+  if (error) throw error;
+  await loadAll();
+}
+// Aplica un ascenso: promueve a la persona y reinicia su "tiempo en grado".
+export async function aplicarAscenso({ personaId, aRango }) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase.from('personal')
+    .update({ rango: aRango, fecha_ascenso: hoy, updated_at: new Date().toISOString() }).eq('id', personaId);
+  if (error) throw error;
+}
+export async function ascenderDirecto(a, aprobadoPor) {
+  await supabase.from('ascensos').insert({
+    persona_id: a.personaId, de_rango: a.deRango, a_rango: a.aRango, motivo: a.motivo || '',
+    proponente: aprobadoPor || '', aprobado_por: aprobadoPor || '', estado: 'Aprobado', resolved_at: new Date().toISOString(),
+  });
+  await aplicarAscenso(a);
+  await loadAll();
+}
+export async function resolverAscenso(asc, accion, aprobadoPor) {
+  if (accion === 'aprobar') {
+    await supabase.from('ascensos').update({ estado: 'Aprobado', aprobado_por: aprobadoPor || '', resolved_at: new Date().toISOString() }).eq('id', asc.id);
+    await aplicarAscenso({ personaId: asc.personaId, aRango: asc.aRango });
+  } else {
+    await supabase.from('ascensos').update({ estado: 'Rechazado', aprobado_por: aprobadoPor || '', resolved_at: new Date().toISOString() }).eq('id', asc.id);
+  }
+  await loadAll();
+}
+export async function removeAscenso(id) {
+  const { error } = await supabase.from('ascensos').delete().eq('id', id);
   if (error) throw error;
   await loadAll();
 }

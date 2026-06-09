@@ -1,4 +1,5 @@
-import { getState, balance, esTD } from '../store.js';
+import { getState, balance, esTD, esDirectiva } from '../store.js';
+import { elegiblesAscenso } from './ascensos.js';
 import { el, fmtMoney, fmtDate, badge } from '../ui.js';
 import { icon, sealImg } from '../icons.js';
 import { nuevoMariscal } from './personal.js';
@@ -32,6 +33,10 @@ export function viewDashboard() {
   if (strikesAltos) alertas.push(['shield', 'Mariscales con 2+ strikes', strikesAltos, 'red', '#/personal']);
   if (banderas.length) alertas.push(['alert', 'Bajo rendimiento (< 40 h)', banderas.length, 'warn', '#/personal']);
   if (esTD() && examAlertas) alertas.push(['alert', 'Alertas de manipulación en exámenes', examAlertas, 'red', '#/training']);
+  if (esDirectiva()) {
+    const elegibles = elegiblesAscenso(s).filter((x) => x.ev.elegible).length;
+    if (elegibles) alertas.push(['star', 'Elegibles para ascenso', elegibles, 'gold', '#/ascensos']);
+  }
 
   // -------- Actividad reciente --------
   const nombreDe = (id) => s.personal.find((p) => p.id === id)?.nombre || 'mariscal';

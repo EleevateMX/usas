@@ -881,3 +881,15 @@ a.tema-chip:hover, a.portal-tema:hover { border-color: var(--gold); }
 .md-table th, .md-table td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; }
 .md-table th { background: var(--navy-700); color: var(--gold-soft); }
 @media (max-width: 560px) { .manual-body { padding: 8px 14px 24px; } }
+
+/* =========================================================================
+   Ascensos
+   ========================================================================= */
+.reqs { display: flex; flex-wrap: wrap; gap: 5px; }
+.req { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; border-radius: 6px; padding: 2px 7px; white-space: nowrap; border: 1px solid var(--line); }
+.req.ok { color: #8ff0cf; background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.4); }
+.req.no { color: #ffb4b4; background: rgba(240,82,82,.12); border-color: rgba(240,82,82,.4); }
+tr.elegible-row { background: rgba(217,181,61,.06); }
+tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
+.alert-ico.gold { color: var(--gold); }
+.badge.gold { background: rgba(217,181,61,.16); color: var(--gold); }

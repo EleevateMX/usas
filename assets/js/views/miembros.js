@@ -1,4 +1,4 @@
-import { getState, esAdmin, esDirector, updatePerfil, removePerfil, loadAll } from '../store.js';
+import { getState, esAdmin, esDirector, updatePerfil, removePerfil, loadAll, miFicha } from '../store.js';
 import { crearMiembro, cambiarPassword } from '../auth.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge } from '../ui.js';
 import { icon } from '../icons.js';
@@ -108,9 +108,12 @@ export function abrirCuenta() {
   const p = getState().perfil;
   if (!p) return;
   const np = el('input', { type: 'password', placeholder: 'Nueva contraseña (6+)' });
+  const ficha = miFicha();
   const body = el('div', {}, [
     el('p', { class: 'muted small' }, `${p.nombre || ''} · ${p.email}`),
     el('p', {}, ['Rol actual: ', badge(p.rol, 'rango')]),
+    ficha ? el('p', { class: 'muted small' }, ['Ficha vinculada: ', el('strong', {}, ficha.nombre), ` · ${ficha.rango} · placa ${ficha.placa ?? '—'}`])
+      : el('p', { class: 'muted small' }, 'Sin ficha de personal vinculada (se enlaza por correo).'),
     el('label', { class: 'field' }, [el('span', {}, 'Cambiar contraseña'), np]),
     el('div', { class: 'row gap end' }, [
       el('button', { class: 'btn ghost', onClick: closeModal }, 'Cerrar'),
