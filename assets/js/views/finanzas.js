@@ -2,6 +2,7 @@ import { getState, addMovimiento, updateMovimiento, removeMovimiento, balance } 
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtMoney, fmtDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
+import { exportarFinanzasCSV } from '../export.js';
 
 export const nuevoMovimiento = () => openForm();
 const CATEGORIAS = ['General', 'Salarios', 'Unidades', 'Armamento', 'Multas', 'Operativos', 'Capacitaciones', 'Donaciones', 'Mantenimiento'];
@@ -22,7 +23,10 @@ export function viewFinanzas() {
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Tesorería — Ingresos / Egresos'),
-      el('button', { class: 'btn gold', onClick: () => openForm() }, '+ Nuevo movimiento'),
+      el('div', { class: 'row gap' }, [
+        el('button', { class: 'btn ghost ic', title: 'Exportar a CSV', onClick: exportarFinanzasCSV }, [icon('download', 15), 'CSV']),
+        el('button', { class: 'btn gold', onClick: () => openForm() }, '+ Nuevo movimiento'),
+      ]),
     ]),
 
     el('div', { class: 'grid kpis' }, [

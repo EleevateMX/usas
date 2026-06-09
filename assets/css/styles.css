@@ -610,3 +610,86 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .fin-bar.ing { background: linear-gradient(180deg, #44e0a8, var(--green)); }
 .fin-bar.egr { background: linear-gradient(180deg, #f47171, var(--red)); }
 .fin-lbl { font-size: 11px; color: var(--muted); text-transform: capitalize; }
+
+/* =========================================================================
+   Notificaciones, búsqueda global, exportación y retroalimentación de examen
+   ========================================================================= */
+.icon-btn.bell.on { color: var(--gold); }
+.icon-btn.bell.on svg { filter: drop-shadow(0 0 6px rgba(217,181,61,.5)); }
+
+/* ---- Paleta de búsqueda (Ctrl/⌘ K) ---- */
+.cmdk { display: flex; flex-direction: column; gap: 10px; min-height: 320px; }
+.cmdk-top {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--navy-800); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 12px; color: var(--muted);
+}
+.cmdk-input {
+  flex: 1; min-width: 0; background: transparent; border: 0; outline: 0;
+  color: var(--text); font-size: 15px; font-family: inherit;
+}
+.cmdk-top kbd {
+  font-size: 10px; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 6px; padding: 2px 6px; background: var(--navy-850);
+}
+.cmdk-results { display: flex; flex-direction: column; gap: 4px; max-height: 52vh; overflow-y: auto; }
+.cmdk-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  padding: 9px 11px; color: var(--text); cursor: pointer; font-family: inherit;
+}
+.cmdk-row:hover, .cmdk-row.sel { background: var(--navy-700); border-color: var(--line); }
+.cmdk-ico { color: var(--gold-soft); display: flex; }
+.cmdk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cmdk-lbl { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmdk-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmdk-empty { color: var(--muted); padding: 24px; text-align: center; }
+.cmdk-foot { padding-top: 4px; text-align: right; }
+
+/* ---- Retroalimentación del examen (página pública) ---- */
+.fb-msg {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--navy-800); border: 1px solid var(--line);
+  border-left: 3px solid var(--amber); border-radius: 12px;
+  padding: 14px 16px; margin: 14px 0; color: var(--text);
+}
+.fb-msg.ok { border-left-color: var(--green); }
+.fb-msg p { margin: 0; }
+.fb-msg .ico { color: var(--gold); flex-shrink: 0; }
+.fb-block {
+  background: var(--navy-800); border: 1px solid var(--line);
+  border-radius: 12px; padding: 14px 16px; margin: 14px 0;
+}
+.fb-head { display: flex; align-items: center; gap: 8px; color: var(--gold-soft); margin-bottom: 4px; }
+.fb-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.fb-err { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--navy-850); }
+.fb-q { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin-bottom: 8px; }
+.fb-row { display: flex; gap: 8px; align-items: baseline; font-size: 14px; margin: 2px 0; }
+.fb-tag {
+  flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+  border-radius: 5px; padding: 2px 7px; font-weight: 700;
+}
+.fb-row.mal .fb-tag { background: rgba(240,82,82,.15); color: #ffb4b4; }
+.fb-row.bien .fb-tag { background: rgba(52,211,153,.15); color: #8ff0cf; }
+.fb-why {
+  display: flex; gap: 8px; align-items: flex-start; margin-top: 8px;
+  font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px;
+}
+.fb-why .ico { color: var(--gold); flex-shrink: 0; }
+.fb-temas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.fb-tema { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--navy-850); }
+.fb-tema.bajo { border-color: rgba(246,166,9,.5); background: rgba(246,166,9,.08); }
+.fb-tema-top { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 6px; }
+.fb-tema-pct { color: var(--gold-soft); }
+.fb-bar { height: 7px; border-radius: 99px; background: var(--navy-700); overflow: hidden; }
+.fb-bar-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--gold)); }
+.fb-tema.bajo .fb-bar-fill { background: linear-gradient(90deg, var(--red), var(--amber)); }
+
+/* ---- Explicación en la revisión del instructor ---- */
+.rev-why {
+  display: flex; gap: 8px; align-items: flex-start; margin-top: 10px;
+  padding-top: 9px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--muted);
+}
+.rev-why .ico { color: var(--gold); flex-shrink: 0; }
+
+@media (max-width: 640px) { .fb-temas { grid-template-columns: 1fr; } }

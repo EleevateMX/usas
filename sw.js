@@ -3,7 +3,7 @@
 //  Shell cache + stale-while-revalidate para recursos propios. Las llamadas a
 //  Supabase y CDNs van siempre a la red (datos frescos).
 // ===========================================================================
-const VERSION = 'usms-v2';
+const VERSION = 'usms-v3';
 const SHELL = [
   './', './index.html', './examen.html', './manifest.json',
   './assets/css/styles.css',
@@ -42,4 +42,36 @@ self.addEventListener('fetch', (e) => {
       return cached || network;
     })
   );
+});
+
+// --------------------------- Notificaciones push ---------------------------
+self.addEventListener('push', (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch { data = { body: e.data ? e.data.text() : '' }; }
+  const title = data.title || 'U.S. Marshals Service';
+  e.waitUntil(self.registration.showNotification(title, {
+    body: data.body || '',
+    icon: './assets/img/icon-192.png',
+    badge: './assets/img/favicon.png',
+    data: { url: data.url || '#/dashboard' },
+    vibrate: [80, 40, 80],
+    tag: data.tag || undefined,
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const ruta = (e.notification.data && e.notification.data.url) || '#/dashboard';
+  const dest = ruta.startsWith('#') ? './' + ruta : ruta;
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) {
+      if ('focus' in c) {
+        await c.focus();
+        if (ruta.startsWith('#') && 'navigate' in c) { try { await c.navigate(c.url.split('#')[0] + ruta); } catch { /* noop */ } }
+        return;
+      }
+    }
+    await self.clients.openWindow(dest);
+  })());
 });

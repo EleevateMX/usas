@@ -2,11 +2,13 @@
 //  USMS Control — Bootstrap (con autenticación Supabase)
 // ===========================================================================
 import { ROUTES, initRouter, render } from './router.js';
-import { getState, setSession, loadPerfil, loadAll, subscribe, initRealtime } from './store.js';
+import { getState, setSession, loadPerfil, loadAll, subscribe, initRealtime, puedeExportar } from './store.js';
 import { getSession, onAuthChange, signOut, viewLogin } from './auth.js';
 import { el, toast, modal, closeModal } from './ui.js';
 import { icon, sealImg } from './icons.js';
 import { abrirCuenta } from './views/miembros.js';
+import { abrirBusqueda } from './search.js';
+import { pushSoportado, pushEstado, activarPush, desactivarPush } from './push.js';
 
 const elById = (id) => document.getElementById(id);
 
@@ -48,6 +50,14 @@ function buildTopbar() {
   const host = elById('user-box');
   host.innerHTML = '';
   if (!p) return;
+  if (puedeExportar()) {
+    host.append(el('button', { class: 'icon-btn', title: 'Búsqueda global (Ctrl/⌘ K)', onClick: abrirBusqueda }, [icon('search', 18)]));
+  }
+  if (pushSoportado()) {
+    const bell = el('button', { class: 'icon-btn bell', title: 'Notificaciones', onClick: () => toggleBell(bell) }, [icon('bell', 18)]);
+    host.append(bell);
+    refrescarBell(bell);
+  }
   host.append(
     el('button', { class: 'user-chip', onClick: abrirCuenta, title: 'Mi cuenta' }, [
       icon('user', 15),
@@ -58,6 +68,27 @@ function buildTopbar() {
       await signOut(); location.reload();
     } }, [icon('logout', 18)]),
   );
+}
+
+function setBellIcon(bell, estado) {
+  bell.innerHTML = '';
+  bell.append(icon(estado === 'activo' ? 'bell' : 'bellOff', 18));
+  bell.classList.toggle('on', estado === 'activo');
+  bell.title = estado === 'activo' ? 'Notificaciones activas — clic para desactivar'
+    : estado === 'bloqueado' ? 'Notificaciones bloqueadas en el navegador'
+    : 'Activar notificaciones push';
+}
+async function refrescarBell(bell) {
+  try { setBellIcon(bell, await pushEstado()); } catch { /* noop */ }
+}
+async function toggleBell(bell) {
+  bell.disabled = true;
+  try {
+    const estado = await pushEstado();
+    if (estado === 'activo') { await desactivarPush(); toast('Notificaciones desactivadas'); }
+    else { await activarPush(); toast('Notificaciones activadas'); }
+  } catch (e) { toast(e.message || 'No se pudo cambiar las notificaciones', 'err'); }
+  finally { bell.disabled = false; refrescarBell(bell); }
 }
 
 async function enterApp() {
@@ -82,6 +113,14 @@ async function enterApp() {
   if (!window.__usmsRealtimeWired) {
     window.__usmsRealtimeWired = true;
     subscribe(scheduleRender);
+  }
+
+  // Búsqueda global con Ctrl/⌘ K.
+  if (!window.__usmsSearchWired) {
+    window.__usmsSearchWired = true;
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); abrirBusqueda(); }
+    });
   }
 
   const toggle = elById('menu-toggle');

@@ -203,6 +203,7 @@ function revisionCard(q, elegida, num) {
         (esElegida && !esCorrecta) ? el('span', { class: 'rev-tag mal' }, [icon('close', 13), 'Su respuesta']) : null,
       ]);
     })),
+    q.explicacion ? el('div', { class: 'rev-why' }, [icon('award', 13), el('span', {}, q.explicacion)]) : null,
   ]);
 }
 
@@ -295,6 +296,8 @@ function openPregunta(q = null) {
     el('label', { class: 'field full' }, [el('span', {}, 'Enunciado'), (f.enunciado = el('textarea', { rows: '2' }, d.enunciado || ''))]),
     ...optInputs,
     field('Respuesta correcta', correcta),
+    el('label', { class: 'field full' }, [el('span', {}, 'Retroalimentación (por qué es la correcta)'),
+      (f.explicacion = el('textarea', { rows: '2', placeholder: 'Se muestra al aspirante en academias rápidas y en la revisión.' }, d.explicacion || ''))]),
     el('label', { class: 'field row gap full', style: 'align-items:center' }, [
       (f.activa = el('input', { type: 'checkbox', ...(d.activa !== false ? { checked: '' } : {}) })),
       el('span', {}, 'Pregunta activa (entra en el examen)'),
@@ -311,6 +314,7 @@ function openPregunta(q = null) {
       categoria: f.categoria.value, dificultad: f.dificultad.value,
       enunciado: f.enunciado.value.trim(), opciones: opts,
       correcta: +f.correcta.value, activa: f.activa.checked,
+      explicacion: f.explicacion.value.trim(),
     };
     if (!data.enunciado || opts.some((o) => !o)) return toast('Completa el enunciado y las 4 opciones.', 'err');
     try {

@@ -4,6 +4,7 @@ import { icon, sealImg } from '../icons.js';
 import { nuevoMariscal } from './personal.js';
 import { nuevoCaso } from './asuntos.js';
 import { nuevoMovimiento } from './finanzas.js';
+import { exportarReportePDF } from '../export.js';
 
 const h3 = (ic, text) => el('h3', { class: 'h-ico' }, [icon(ic, 17), text]);
 const go = (hash) => () => { location.hash = hash; };
@@ -90,6 +91,7 @@ export function viewDashboard() {
       el('button', { class: 'btn ghost ic', onClick: nuevoMariscal }, [icon('personal', 16), 'Nuevo mariscal']),
       el('button', { class: 'btn ghost ic', onClick: nuevoCaso }, [icon('asuntos', 16), 'Nuevo caso OPR']),
       el('button', { class: 'btn ghost ic', onClick: nuevoMovimiento }, [icon('finanzas', 16), 'Nuevo movimiento']),
+      el('button', { class: 'btn ghost ic', onClick: exportarReportePDF }, [icon('download', 16), 'Exportar PDF']),
     ]),
 
     el('div', { class: 'grid kpis' }, [

@@ -69,6 +69,7 @@ const mapPerfil = (r) => ({
 const mapPregunta = (r) => ({
   id: r.id, categoria: r.categoria, dificultad: r.dificultad, enunciado: r.enunciado,
   opciones: r.opciones || [], correcta: r.correcta, activa: r.activa,
+  explicacion: r.explicacion || '',
 });
 const mapIntento = (r) => ({
   id: r.id, nombre: r.nombre, discord: r.discord, fecha: r.created_at,
@@ -148,6 +149,14 @@ export const esDirectiva = () => ['Directive', 'Executive', 'Director'].includes
 export const esAdmin = () => ['Executive', 'Director'].includes(rolActual());
 export const esDirector = () => rolActual() === 'Director';
 export const misDivisiones = () => state.perfil?.divisiones || [];
+// Exportar datos y búsqueda global: todo el Supervisory Staff (SDUSM I → U.S. Marshal).
+export const puedeExportar = () => !!state.perfil;
+
+// Dispara una notificación push a la audiencia indicada (no bloquea).
+export async function notificar(payload) {
+  try { await supabase.functions.invoke('notificar', { body: payload }); }
+  catch { /* las notificaciones nunca deben romper el flujo */ }
+}
 // Pertenece a la Training Division (o es cúpula Executive/Director, que ve todo).
 export const esTD = () => esAdmin() || misDivisiones().some((d) => {
   const n = (d || '').toLowerCase().trim();
@@ -278,6 +287,7 @@ export async function addCaso(c) {
   if (error) throw error;
   await syncArticulos(data.id, c.articulos);
   await loadAll();
+  notificar({ titulo: 'Nuevo caso OPR', cuerpo: `${folio} · ${c.denunciado || 'sin denunciado'}`, url: '#/asuntos', audiencia: 'opr' });
   return data.id;
 }
 export async function updateCaso(id, c) {
@@ -341,6 +351,7 @@ export async function addPregunta(p) {
   const { error } = await supabase.from('examen_preguntas').insert({
     categoria: p.categoria, dificultad: p.dificultad, enunciado: p.enunciado,
     opciones: p.opciones, correcta: p.correcta, activa: p.activa !== false,
+    explicacion: p.explicacion || '',
   });
   if (error) throw error;
   await loadAll();
@@ -349,6 +360,7 @@ export async function updatePregunta(id, p) {
   const { error } = await supabase.from('examen_preguntas').update({
     categoria: p.categoria, dificultad: p.dificultad, enunciado: p.enunciado,
     opciones: p.opciones, correcta: p.correcta, activa: p.activa,
+    explicacion: p.explicacion || '',
   }).eq('id', id);
   if (error) throw error;
   await loadAll();

@@ -3,6 +3,7 @@ import { getState, addPersona, updatePersona, removePersona,
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
+import { exportarPersonalCSV } from '../export.js';
 
 const RANGOS = [
   'DUSMT', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV',
@@ -38,6 +39,7 @@ export function viewPersonal() {
            ...ESTADOS.map((s) => el('option', { value: s, ...(s === estadoF ? { selected: '' } : {}) }, s))]),
         el('input', { class: 'search', placeholder: 'Buscar nombre, placa, hash, Discord, correo…',
           value: filtro, oninput: (e) => { filtro = e.target.value; rerender(); } }),
+        el('button', { class: 'btn ghost ic', title: 'Exportar a CSV', onClick: exportarPersonalCSV }, [icon('download', 15), 'CSV']),
         el('button', { class: 'btn gold', onClick: () => openForm() }, '+ Nuevo mariscal'),
       ]),
     ]),

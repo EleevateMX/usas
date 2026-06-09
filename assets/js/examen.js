@@ -139,7 +139,8 @@ async function enviarExamen(auto) {
 
 function vistaResultado(r, auto) {
   const ok = r.aprobado;
-  montar(el('div', { class: 'ex-card' }, [
+  const fb = r.feedback || {};
+  const bloques = [
     el('div', { class: 'ex-brand' }, [sealImg(80)]),
     el('div', { class: `ex-result ${ok ? 'ok' : 'no'}` }, [
       el('div', { class: 'ex-res-ico' }, [icon(ok ? 'check' : 'close', 40)]),
@@ -149,9 +150,54 @@ function vistaResultado(r, auto) {
       auto ? el('p', { class: 'muted small' }, 'El examen se envió automáticamente al agotarse el tiempo.') : null,
       r.expirado ? el('p', { class: 'warn small' }, 'Enviado fuera del tiempo límite.') : null,
     ]),
+  ];
+
+  // Retroalimentación según el tipo de academia.
+  if (fb.modo === 'convencional' && fb.mensaje) {
+    bloques.push(el('div', { class: 'fb-msg' + (ok ? ' ok' : '') }, [icon('award', 22), el('p', {}, fb.mensaje)]));
+  } else if (fb.modo === 'rapida') {
+    bloques.push(feedbackRapida(fb.errores || []));
+  } else if (fb.modo === 'reingreso') {
+    bloques.push(feedbackReingreso(fb.temas || []));
+  }
+
+  bloques.push(
     el('p', { class: 'muted small center' }, 'Tu resultado fue registrado y será revisado por un instructor de la Training Division.'),
     el('div', { class: 'auth-foot' }, 'U.S. Marshals Service · Training Division'),
-  ]));
+  );
+  montar(el('div', { class: 'ex-card wide' }, bloques));
+}
+
+// Academia rápida (AMTP): retroalimentación pregunta a pregunta de los errores.
+function feedbackRapida(errores) {
+  if (!errores.length) {
+    return el('div', { class: 'fb-msg ok' }, [icon('check', 22), el('p', {}, 'Excelente: sin errores. Dominas la teoría, listo para lo aplicado.')]);
+  }
+  return el('div', { class: 'fb-block' }, [
+    el('div', { class: 'fb-head' }, [icon('scan', 16), el('strong', {}, `Retroalimentación · ${errores.length} ${errores.length === 1 ? 'punto a revisar' : 'puntos a revisar'}`)]),
+    el('p', { class: 'muted small' }, 'Repasa estos temas antes de la parte aplicada:'),
+    el('div', { class: 'fb-list' }, errores.map((e, i) => el('div', { class: 'fb-err' }, [
+      el('div', { class: 'fb-q' }, [el('span', { class: 'ex-num' }, String(i + 1)), el('span', {}, e.enunciado)]),
+      el('div', { class: 'fb-row mal' }, [el('span', { class: 'fb-tag' }, 'Tu respuesta'), el('span', {}, e.tu || 'Sin responder')]),
+      el('div', { class: 'fb-row bien' }, [el('span', { class: 'fb-tag' }, 'Correcta'), el('span', {}, e.correcta || '—')]),
+      e.explicacion ? el('div', { class: 'fb-why' }, [icon('award', 13), el('span', {}, e.explicacion)]) : null,
+    ]))),
+  ]);
+}
+
+// Reingreso: diagnóstico por tema para saber qué reforzar.
+function feedbackReingreso(temas) {
+  if (!temas.length) return el('div', {});
+  const debiles = temas.filter((t) => t.reforzar).length;
+  return el('div', { class: 'fb-block' }, [
+    el('div', { class: 'fb-head' }, [icon('layers', 16), el('strong', {}, 'Diagnóstico por tema')]),
+    el('p', { class: 'muted small' }, debiles ? 'Temas a reforzar antes del reingreso (resaltados):' : 'Buen nivel general en todos los temas.'),
+    el('div', { class: 'fb-temas' }, temas.map((t) => el('div', { class: 'fb-tema' + (t.reforzar ? ' bajo' : '') }, [
+      el('div', { class: 'fb-tema-top' }, [el('span', {}, t.categoria), el('span', { class: 'fb-tema-pct' }, `${t.pct}%`)]),
+      el('div', { class: 'fb-bar' }, [el('div', { class: 'fb-bar-fill', style: `width:${t.pct}%` })]),
+      el('div', { class: 'muted xsmall' }, `${t.correctas}/${t.total} correctas${t.reforzar ? ' · a reforzar' : ''}`),
+    ]))),
+  ]);
 }
 
 const fmtTime = (s) => `${String(Math.floor(Math.max(s, 0) / 60)).padStart(2, '0')}:${String(Math.max(s, 0) % 60).padStart(2, '0')}`;
