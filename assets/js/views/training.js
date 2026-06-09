@@ -145,7 +145,8 @@ function tablaIntentos(lista) {
     el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), el('th', {}, 'Discord'), el('th', {}, 'Fecha'),
       el('th', { class: 'right' }, 'Nota'), el('th', {}, 'Estado'), el('th', {}, '')])),
     el('tbody', {}, lista.slice(0, 100).map((i) => el('tr', {}, [
-      el('td', {}, el('strong', {}, i.nombre)),
+      el('td', {}, [el('strong', {}, i.nombre), i.alertas > 0
+        ? el('span', { class: 'alert-flag', title: alertaResumen(i) }, [icon('alert', 13), `${i.alertas}`]) : null]),
       el('td', { class: 'muted small' }, i.discord || '—'),
       el('td', { class: 'muted small' }, fmtDate(i.fecha)),
       el('td', { class: 'right' }, i.estado === 'en_curso' ? '—' : `${pctNota(i)}%`),
@@ -158,6 +159,17 @@ function tablaIntentos(lista) {
   ]);
 }
 
+const EVENTO_LBL = {
+  cambio_pestana: 'cambió de pestaña', salir_pantalla: 'salió de la ventana',
+  copiar: 'copió', pegar: 'pegó', menu_contextual: 'menú contextual',
+  atajo: 'atajo de teclado', reintento_bloqueado: 'intentó repetir el examen', fuera_de_tiempo: 'envío fuera de tiempo',
+};
+function alertaResumen(i) {
+  const c = {};
+  (i.eventos || []).forEach((e) => { c[e.tipo] = (c[e.tipo] || 0) + 1; });
+  const partes = Object.entries(c).map(([t, n]) => `${n}× ${EVENTO_LBL[t] || t}`);
+  return `Posible manipulación (Internal Affairs): ${partes.join(', ') || i.alertas + ' alertas'}`;
+}
 const pctNota = (i) => (i.total ? Math.round((i.puntaje / i.total) * 100) : 0);
 function estadoBadge(i) {
   if (i.estado === 'en_curso') return badge('en curso', 'warn');

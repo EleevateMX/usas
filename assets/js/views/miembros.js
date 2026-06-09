@@ -19,18 +19,24 @@ export function viewMiembros() {
 
     el('div', { class: 'card info-strip' }, [
       el('span', { class: 'strip-ico' }, [icon('miembros', 22)]),
-      el('p', { class: 'muted small' }, 'Cadena de mando: Supervisory · Directive · Executive · Director. Solo Executive/Director pueden crear miembros y cambiar roles. La edición de la Normativa requiere Directive o superior.'),
+      el('p', { class: 'muted small' }, 'Cadena de mando: Supervisory · Directive · Executive · Director. Solo Executive/Director crean miembros, cambian roles y asignan divisiones. La Normativa la edita Directive+. El panel de Training Division solo lo ven los miembros con la división “Training Division” marcada (y la cúpula).'),
     ]),
 
     el('div', { class: 'card no-pad' }, [
       el('table', { class: 'tbl rows' }, [
         el('thead', {}, el('tr', {}, [
-          el('th', {}, 'Miembro'), el('th', {}, 'Correo'), el('th', {}, 'Rol'), el('th', {}, ''),
+          el('th', {}, 'Miembro'), el('th', {}, 'Correo'), el('th', {}, 'Rol'), el('th', {}, 'Divisiones'), el('th', {}, ''),
         ])),
         el('tbody', {}, s.perfiles.map((p) => el('tr', {}, [
           el('td', {}, [el('strong', {}, p.nombre || '—'), p.id === yo?.id ? badge(' tú', 'ok') : null]),
           el('td', { class: 'muted' }, p.email),
           el('td', {}, admin && p.id !== yo?.id ? rolSelect(p) : badge(p.rol, 'rango')),
+          el('td', {}, [
+            el('span', { class: 'chips' }, (p.divisiones || []).length
+              ? p.divisiones.map((d) => el('span', { class: 'chip' }, d))
+              : [el('span', { class: 'muted small' }, '—')]),
+            admin ? el('button', { class: 'icon-btn', title: 'Editar divisiones', onClick: () => openDivisiones(p) }, [icon('edit', 14)]) : null,
+          ]),
           el('td', { class: 'right' }, admin && p.id !== yo?.id
             ? el('button', { class: 'icon-btn', title: 'Eliminar perfil', onClick: () =>
                 confirmDialog(`¿Eliminar el perfil de ${p.nombre || p.email}? (No borra su cuenta de acceso)`,
@@ -75,6 +81,25 @@ function openCrear() {
     } catch (e) { toast(e.message, 'err'); }
   }
   modal('Crear miembro', body, { wide: true });
+}
+
+function openDivisiones(p) {
+  const inp = el('input', { value: (p.divisiones || []).join(', '), placeholder: 'Ej.: Training Division, SOG' });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') guardar(); });
+  async function guardar() {
+    const divs = inp.value.split(',').map((x) => x.trim()).filter(Boolean);
+    try { await updatePerfil(p.id, { divisiones: divs }); toast('Divisiones actualizadas'); closeModal(); render(); }
+    catch (e) { toast(e.message, 'err'); }
+  }
+  const body = el('div', {}, [
+    el('p', { class: 'muted small' }, `Divisiones de ${p.nombre || p.email}. Incluye “Training Division” (o TD) para darle acceso al panel de exámenes; “SOG”, “IOD”, etc. para sus respectivos paneles.`),
+    el('label', { class: 'field' }, [el('span', {}, 'Divisiones (separadas por coma)'), inp]),
+    el('div', { class: 'row gap end' }, [
+      el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
+      el('button', { class: 'btn gold', onClick: guardar }, 'Guardar'),
+    ]),
+  ]);
+  modal('Divisiones — ' + (p.nombre || p.email), body);
 }
 
 // "Mi cuenta": cambiar contraseña (accesible desde la barra superior).

@@ -19,7 +19,7 @@ function buildNav() {
   const nav = elById('nav');
   nav.innerHTML = '';
   for (const [path, r] of Object.entries(ROUTES)) {
-    if (r.soloAdmin && !esAdmin()) continue;
+    if (r.gate && !r.gate()) continue;
     const a = el('a', { class: 'nav-item', href: '#' + path, dataset: { path } },
       [icon(r.icon, 18), el('span', {}, r.label)]);
     nav.append(a);

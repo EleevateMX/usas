@@ -13,7 +13,7 @@ const app = () => document.getElementById('examen-app');
 
 let estado = {
   intentoId: null, token: null, preguntas: [], respuestas: {},
-  duracionSeg: 1200, restante: 1200, timer: null, enviando: false,
+  duracionSeg: 1200, restante: 1200, timer: null, enviando: false, alertas: 0,
 };
 
 function montar(node) { const a = app(); a.innerHTML = ''; a.append(node); }
@@ -74,13 +74,19 @@ function vistaExamen() {
 
   montar(el('div', { class: 'ex-card wide' }, [
     el('div', { class: 'ex-top' }, [
-      el('div', {}, [el('strong', {}, 'Examen teórico USMS'), el('div', { class: 'muted small' }, 'No recargues la página.')]),
+      el('div', {}, [el('strong', {}, 'Examen teórico USMS'), el('div', { class: 'muted small' }, 'No salgas de esta ventana ni recargues la página.')]),
       el('div', { class: 'ex-top-right' }, [progreso, reloj]),
+    ]),
+    el('div', { class: 'ex-alert', id: 'ex-alert', style: 'display:none' }, [
+      icon('alert', 16), el('span', {}, 'Se registró que saliste del examen. Cada salida queda registrada para la Training Division ('),
+      el('span', { class: 'exa-n' }, '0'), el('span', {}, ').'),
     ]),
     cont,
     enviar,
   ]));
 
+  estado.alertas = 0;
+  startMonitor();
   clearInterval(estado.timer);
   estado.timer = setInterval(() => {
     estado.restante--;
@@ -119,7 +125,7 @@ async function enviarExamen(auto) {
   if (estado.enviando) return;
   const faltan = estado.preguntas.length - Object.keys(estado.respuestas).length;
   if (!auto && faltan > 0 && !confirm(`Te faltan ${faltan} preguntas por responder. ¿Enviar de todas formas? No podrás volver.`)) return;
-  estado.enviando = true; clearInterval(estado.timer);
+  estado.enviando = true; clearInterval(estado.timer); stopMonitor();
   montar(el('div', { class: 'ex-card' }, [el('div', { class: 'ex-load' }, [marshalBadge(60), el('p', {}, 'Corrigiendo examen…')])]));
   try {
     const { data, error } = await supabase.functions.invoke('examen-enviar', {
@@ -153,6 +159,39 @@ const fmtTime = (s) => `${String(Math.floor(Math.max(s, 0) / 60)).padStart(2, '0
 window.addEventListener('beforeunload', (e) => {
   if (estado.intentoId && !estado.enviando && estado.restante > 0) { e.preventDefault(); e.returnValue = ''; }
 });
+
+// --------------------- Anti-manipulación (auditoría) -----------------------
+const monitor = { activo: false, handlers: [] };
+let ultimoReporte = 0;
+
+function reportarEvento(tipo) {
+  if (!estado.intentoId || estado.enviando) return;
+  const ahora = Date.now();
+  if (ahora - ultimoReporte < 600) return; // evita duplicados (blur+visibility)
+  ultimoReporte = ahora;
+  supabase.functions.invoke('examen-evento', { body: { intentoId: estado.intentoId, token: estado.token, tipo } }).catch(() => {});
+  estado.alertas++;
+  const b = document.getElementById('ex-alert');
+  if (b) { b.style.display = 'flex'; const n = b.querySelector('.exa-n'); if (n) n.textContent = String(estado.alertas); }
+}
+
+function startMonitor() {
+  if (monitor.activo) return; monitor.activo = true;
+  const add = (t, target, fn, opts) => { target.addEventListener(t, fn, opts); monitor.handlers.push([t, target, fn, opts]); };
+  add('visibilitychange', document, () => { if (document.hidden) reportarEvento('cambio_pestana'); });
+  add('blur', window, () => { if (!document.hidden) reportarEvento('salir_pantalla'); });
+  add('copy', document, () => reportarEvento('copiar'));
+  add('paste', document, () => reportarEvento('pegar'));
+  add('contextmenu', document, (e) => { e.preventDefault(); reportarEvento('menu_contextual'); });
+  add('keydown', document, (e) => {
+    const k = (e.key || '').toLowerCase();
+    if (((e.ctrlKey || e.metaKey) && ['c', 'v', 'p', 'u', 's'].includes(k)) || k === 'f12') reportarEvento('atajo');
+  });
+}
+function stopMonitor() {
+  monitor.handlers.forEach(([t, target, fn, opts]) => target.removeEventListener(t, fn, opts));
+  monitor.handlers = []; monitor.activo = false;
+}
 
 function vistaSinEnlace() {
   montar(el('div', { class: 'ex-card' }, [

@@ -10,6 +10,7 @@ import { viewReferencia } from './views/referencia.js';
 import { viewTraining } from './views/training.js';
 import { viewMiembros } from './views/miembros.js';
 import { viewRespaldo } from './views/respaldo.js';
+import { esAdmin, esTD } from './store.js';
 
 export const ROUTES = {
   '/dashboard': { label: 'Centro de Mando', icon: 'dashboard', view: viewDashboard },
@@ -18,8 +19,8 @@ export const ROUTES = {
   '/asuntos':   { label: 'Asuntos Internos',icon: 'asuntos',   view: viewAsuntos },
   '/normativa': { label: 'Normativa',        icon: 'normativa', view: viewNormativa },
   '/referencia':{ label: 'Referencia',       icon: 'referencia',view: viewReferencia },
-  '/training':  { label: 'Training Division',icon: 'training',  view: viewTraining },
-  '/miembros':  { label: 'Miembros',         icon: 'miembros',  view: viewMiembros, soloAdmin: true },
+  '/training':  { label: 'Training Division',icon: 'training',  view: viewTraining, gate: esTD },
+  '/miembros':  { label: 'Miembros',         icon: 'miembros',  view: viewMiembros, gate: esAdmin },
   '/respaldo':  { label: 'Respaldo',         icon: 'respaldo',  view: viewRespaldo },
 };
 
@@ -29,7 +30,9 @@ export function currentPath() {
 }
 
 export function render() {
-  const path = currentPath();
+  let path = currentPath();
+  // Rutas restringidas por gate (rol/división): si no tiene acceso, al dashboard.
+  if (ROUTES[path].gate && !ROUTES[path].gate()) { location.hash = '#/dashboard'; path = '/dashboard'; }
   const app = document.getElementById('app');
   if (!app) return;
   app.innerHTML = '';

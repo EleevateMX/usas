@@ -64,6 +64,7 @@ const mapSancion = (r) => ({
 });
 const mapPerfil = (r) => ({
   id: r.id, email: r.email, nombre: r.nombre, rol: r.rol, activo: r.activo,
+  divisiones: r.divisiones || [],
 });
 const mapPregunta = (r) => ({
   id: r.id, categoria: r.categoria, dificultad: r.dificultad, enunciado: r.enunciado,
@@ -73,6 +74,7 @@ const mapIntento = (r) => ({
   id: r.id, nombre: r.nombre, discord: r.discord, fecha: r.created_at,
   puntaje: Number(r.puntaje) || 0, total: r.total || 0, aprobado: r.aprobado,
   estado: r.estado, duracionSeg: r.duracion_seg, sesionId: r.sesion_id,
+  alertas: r.alertas || 0, eventos: r.eventos || [],
 });
 const mapSesion = (r) => ({
   id: r.id, slug: r.slug, nombre: r.nombre, tipo: r.tipo,
@@ -103,7 +105,7 @@ export async function loadAll() {
     supabase.from('sanciones').select('*').order('fecha', { ascending: false }),
     supabase.from('perfiles').select('*').order('created_at'),
     supabase.from('examen_preguntas').select('*').order('categoria'),
-    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id').order('created_at', { ascending: false }),
+    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id, alertas, eventos').order('created_at', { ascending: false }),
     supabase.from('examen_sesiones').select('*').order('created_at', { ascending: false }),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
@@ -129,6 +131,12 @@ export async function loadPerfil() {
 export const rolActual = () => state.perfil?.rol || null;
 export const esDirectiva = () => ['Directive', 'Executive', 'Director'].includes(rolActual());
 export const esAdmin = () => ['Executive', 'Director'].includes(rolActual());
+export const misDivisiones = () => state.perfil?.divisiones || [];
+// Pertenece a la Training Division (o es cúpula Executive/Director, que ve todo).
+export const esTD = () => esAdmin() || misDivisiones().some((d) => {
+  const n = (d || '').toLowerCase().trim();
+  return n === 'td' || n.includes('training');
+});
 
 // ------------------------------- PERSONAL ----------------------------------
 function personaToRow(p) {
