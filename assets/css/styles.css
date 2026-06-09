@@ -963,3 +963,22 @@ tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 }
 .aca-entry:hover { border-color: var(--gold); background: var(--navy-800); }
 .aca-entry .ico { color: var(--gold-soft); }
+
+/* Asistencia (hoja por día) */
+.asis-wrap { overflow-x: auto; }
+.asis-table th.asis-th { text-align: center; min-width: 42px; }
+.asis-table td.asis-td { text-align: center; padding: 4px; }
+.asis-cell {
+  width: 30px; height: 30px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: var(--navy-800); color: var(--muted); cursor: pointer;
+}
+.asis-cell.pre { color: #8ff0cf; border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.12); }
+.asis-cell.aus { color: #ffb4b4; border-color: rgba(240,82,82,.5); background: rgba(240,82,82,.12); }
+.asis-cell:hover { border-color: var(--gold); }
+
+/* Consola TD aparte (td.html) */
+.td-brand { display: flex; align-items: center; gap: 10px; font-family: 'Oswald', sans-serif; letter-spacing: .5px; color: var(--gold); }
+.td-tabs { display: flex; gap: 6px; flex: 1; margin-left: 10px; }
+.td-tab { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 9px; color: var(--muted); font-weight: 600; }
+.td-tab:hover, .td-tab.active { background: var(--navy-700); color: var(--gold); }
+@media (max-width: 640px) { .td-tab span { display: none; } }

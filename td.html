@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>USMS · Consola Training Division</title>
+  <meta name="description" content="Consola de la Training Division del U.S. Marshals Service — GTAHUB Roleplay." />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b1120" />
+  <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <div id="loader" class="loader">
+    <div class="loader-inner">
+      <img class="loader-seal" src="assets/img/usms-seal.png" onerror="this.onerror=null;this.src='assets/img/usms-seal.svg'" alt="" width="96" height="96" />
+      <div class="loader-spin"></div>
+    </div>
+    <div class="loader-txt">TRAINING DIVISION</div>
+    <div class="loader-sub">Cargando consola…</div>
+  </div>
+
+  <div id="td-gate" class="gate"></div>
+
+  <div id="td-shell" class="shell" style="display:none">
+    <div class="main">
+      <header class="topbar">
+        <div class="td-brand"><span id="td-seal"></span><strong>TD CONSOLE</strong></div>
+        <nav id="td-nav" class="td-tabs"></nav>
+        <div id="td-user" class="user-box"></div>
+      </header>
+      <main id="app" class="content"></main>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/td-app.js"></script>
+</body>
+</html>

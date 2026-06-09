@@ -35,10 +35,18 @@ export function currentPath() {
   return ROUTES[h] ? h : '/dashboard';
 }
 
+// Rutas permitidas en la consola TD aparte (td.html).
+const TD_ONLY = ['/training', '/academia'];
+
 export function render() {
   let path = currentPath();
+  // Consola TD aparte: solo se permiten las rutas de la Training Division.
+  if (window.__tdOnly && !TD_ONLY.includes(path)) { location.hash = '#/academia'; path = '/academia'; }
   // Rutas restringidas por gate (rol/división): si no tiene acceso, al dashboard.
-  if (ROUTES[path].gate && !ROUTES[path].gate()) { location.hash = '#/dashboard'; path = '/dashboard'; }
+  if (ROUTES[path].gate && !ROUTES[path].gate()) {
+    const destino = window.__tdOnly ? '/academia' : '/dashboard';
+    location.hash = '#' + destino; path = destino;
+  }
   const app = document.getElementById('app');
   if (!app) return;
   app.innerHTML = '';

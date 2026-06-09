@@ -28,6 +28,7 @@ let state = {
   tdAnuncios: [],
   ascensoReglas: [],
   ascensos: [],
+  tdAsistencia: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -123,6 +124,9 @@ const mapSeguimiento = (r) => ({
 const mapProgreso = (r) => ({
   id: r.id, discord: r.discord, moduloId: r.modulo_id, completado: r.completado, fecha: r.created_at,
 });
+const mapAsistencia = (r) => ({
+  id: r.id, aspiranteId: r.aspirante_id, dia: r.dia, presente: r.presente,
+});
 
 // Recalcula advertencias/strikes vigentes de cada persona desde el historial.
 function computeContadores() {
@@ -139,7 +143,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg, tdAnun, ascReglas, ascList] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg, tdAnun, ascReglas, ascList, tdAsis] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -157,6 +161,7 @@ export async function loadAll() {
     supabase.from('td_anuncios').select('*').order('fijado', { ascending: false }).order('created_at', { ascending: false }),
     supabase.from('ascenso_reglas').select('*').order('orden'),
     supabase.from('ascensos').select('*').order('created_at', { ascending: false }),
+    supabase.from('td_asistencia').select('*'),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -175,6 +180,7 @@ export async function loadAll() {
   state.tdAnuncios = (tdAnun.data || []).map(mapAnuncio);
   state.ascensoReglas = (ascReglas.data || []).map(mapRegla);
   state.ascensos = (ascList.data || []).map(mapAscenso);
+  state.tdAsistencia = (tdAsis.data || []).map(mapAsistencia);
   computeContadores();
   notify();
 }
@@ -577,6 +583,31 @@ export async function removeAspirante(id) {
   const { error } = await supabase.from('td_aspirantes').delete().eq('id', id);
   if (error) throw error;
   await loadAll();
+}
+export async function setAsistencia(aspiranteId, dia, presente) {
+  const { error } = await supabase.from('td_asistencia')
+    .upsert({ aspirante_id: aspiranteId, dia, presente }, { onConflict: 'aspirante_id,dia' });
+  if (error) throw error;
+  await loadAll();
+}
+// Gradúa a un aspirante: lo marca Aprobado y, si tiene ficha DUSMT en Personal,
+// lo promueve a DUSM I dejando registro en Ascensos.
+export async function graduarAspirante(aspirante, aprobadoPor) {
+  const norm = (x) => (x || '').toString().trim().toLowerCase().replace(/[_\s]+/g, ' ');
+  await supabase.from('td_aspirantes').update({ estado: 'Aprobado' }).eq('id', aspirante.id);
+  const ficha = state.personal.find((p) => norm(p.nombre) === norm(aspirante.nombre) && (p.rango || '').toUpperCase() === 'DUSMT');
+  let promovido = false;
+  if (ficha) {
+    await supabase.from('ascensos').insert({
+      persona_id: ficha.id, de_rango: 'DUSMT', a_rango: 'DUSM I',
+      motivo: 'Graduación de la academia (examen aprobado)', proponente: aprobadoPor || '', aprobado_por: aprobadoPor || '',
+      estado: 'Aprobado', resolved_at: new Date().toISOString(),
+    });
+    await supabase.from('personal').update({ rango: 'DUSM I', fecha_ascenso: new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString() }).eq('id', ficha.id);
+    promovido = true;
+  }
+  await loadAll();
+  return { promovido };
 }
 // Habilita (o quita) el examen para todo el roster de una academia.
 export async function habilitarExamenAcademia(sesionId, habilitado) {

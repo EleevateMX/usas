@@ -3,12 +3,12 @@
 //  Shell cache + stale-while-revalidate para recursos propios. Las llamadas a
 //  Supabase y CDNs van siempre a la red (datos frescos).
 // ===========================================================================
-const VERSION = 'usms-v7';
+const VERSION = 'usms-v8';
 const MANUALES = ['introduccion', 'imagen', 'comunicaciones', 'unidades', 'armamento',
   'generales', 'leo', 'corte', 'prision', 'byc', 'traslados', 'primeros_auxilios']
   .map((s) => `./assets/manuales/${s}.md`);
 const SHELL = [
-  './', './index.html', './examen.html', './academia.html', './manifest.json',
+  './', './index.html', './examen.html', './academia.html', './td.html', './manifest.json',
   './assets/css/styles.css',
   ...MANUALES,
   './assets/img/usms-seal.png', './assets/img/usms-seal.svg',

@@ -5,7 +5,9 @@
 // ===========================================================================
 import { getState, esTD, addModulo, updateModulo, removeModulo,
   addAspirante, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
-  addAnuncio, updateAnuncio, removeAnuncio, crearAcademiaConRoster, habilitarExamenAcademia } from '../store.js';
+  addAnuncio, updateAnuncio, removeAnuncio, crearAcademiaConRoster, habilitarExamenAcademia,
+  setAsistencia, graduarAspirante } from '../store.js';
+import { exportarReporteAcademia } from '../export.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate, fmtDateTime } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -369,7 +371,10 @@ function academiaDetalle(ses, s, gestor) {
         el('span', { class: 'badge rango' }, TIPOS_AC[ses.tipo] || ses.tipo),
         ses.activa ? badge('activa', 'ok') : badge('cerrada', ''),
       ]),
-      gestor ? el('button', { class: 'btn navy small ic', onClick: () => openAspiranteIndividual(ses.id) }, [icon('plus', 14), 'Aspirante']) : null,
+      el('div', { class: 'row gap' }, [
+        el('button', { class: 'btn ghost small ic', onClick: () => exportarReporteAcademia(ses) }, [icon('download', 14), 'Reporte PDF']),
+        gestor ? el('button', { class: 'btn navy small ic', onClick: () => openAspiranteIndividual(ses.id) }, [icon('plus', 14), 'Aspirante']) : null,
+      ]),
     ]),
 
     el('div', { class: 'grid kpis' }, [
@@ -378,6 +383,9 @@ function academiaDetalle(ses, s, gestor) {
       kpi('Presentaron', presentados, `${aprobados} aprobados`, '', 'award'),
       kpi('Examen', ses.duracionMin + ' min', `${ses.faciles}F · ${ses.medias}M · ${ses.dificiles}D`, '', 'clock'),
     ]),
+
+    // Asistencia por día
+    gestor && aspirantes.length ? asistenciaGrid(aspirantes, gestor) : null,
 
     el('div', { class: 'card' }, [
       el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('award', 16), 'Examen de la academia']), null]),
@@ -408,17 +416,20 @@ function academiaDetalle(ses, s, gestor) {
 
 function filaAspiranteAcademia(a, ses, pct, intento, gestor) {
   const notas = getState().tdSeguimiento.filter((x) => x.aspiranteId === a.id).length;
+  const graduado = a.estado === 'Aprobado';
   const examenCell = intento
     ? el('span', { class: 'row gap nowrap' }, [badge(intento.aprobado ? 'aprobado' : 'no aprobado', intento.aprobado ? 'ok' : 'red'), el('span', { class: 'muted small' }, `${pctNota(intento)}%`)])
     : (a.examenHabilitado ? badge('habilitado', 'gold') : badge('no asignado', ''));
-  return el('tr', {}, [
-    el('td', {}, [el('strong', {}, a.nombre)]),
+  return el('tr', { class: graduado ? 'elegible-row' : '' }, [
+    el('td', {}, [el('strong', {}, a.nombre), graduado ? badge(' graduado', 'ok') : null]),
     el('td', { class: 'muted small' }, a.hash || '—'),
     el('td', {}, a.registrado ? badge('listo', 'ok') : badge('sin #HASH#', 'warn')),
     el('td', {}, el('div', { class: 'prog-cell' }, [el('div', { class: 'prog-bar' }, [el('div', { class: 'prog-fill', style: `width:${pct}%` })]), el('span', { class: 'muted small' }, `${pct}%`)])),
     el('td', {}, examenCell),
     el('td', {}, el('button', { class: 'btn ghost small ic', onClick: () => openSeguimiento(a) }, [icon('file', 14), `${notas}`])),
     el('td', { class: 'right nowrap' }, gestor ? [
+      (intento && intento.aprobado && !graduado)
+        ? el('button', { class: 'btn gold small', onClick: () => graduar(a) }, 'Graduar') : null,
       el('button', { class: 'btn ghost small', onClick: async () => {
         try { await updateAspirante(a.id, a.examenHabilitado ? { examenHabilitado: false } : { examenSesionId: ses.id, examenHabilitado: true }); toast('Examen actualizado'); render(); }
         catch (e) { toast(e.message, 'err'); }
@@ -426,6 +437,51 @@ function filaAspiranteAcademia(a, ses, pct, intento, gestor) {
       el('button', { class: 'icon-btn', title: 'Quitar de la academia', onClick: () =>
         confirmDialog(`¿Quitar a ${a.nombre} de la academia?`, async () => { try { await removeAspirante(a.id); toast('Aspirante eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 14)]),
     ] : null),
+  ]);
+}
+
+function graduar(a) {
+  const yo = getState().perfil?.nombre || getState().perfil?.email || '';
+  confirmDialog(`Graduar a ${a.nombre}: se marca como Aprobado y, si tiene ficha DUSMT, se promueve a DUSM I.`, async () => {
+    try { const r = await graduarAspirante(a, yo); toast(r.promovido ? `${a.nombre} graduado y promovido a DUSM I` : `${a.nombre} graduado (sin ficha DUSMT para promover)`); render(); }
+    catch (e) { toast(e.message, 'err'); }
+  });
+}
+
+// Hoja de asistencia: aspirantes × días, con % de asistencia.
+function asistenciaGrid(aspirantes, gestor) {
+  const s = getState();
+  const modulos = [...s.tdModulos].sort((a, b) => a.orden - b.orden);
+  const regDe = (aspId, dia) => s.tdAsistencia.find((x) => x.aspiranteId === aspId && x.dia === dia);
+  const asisPct = (aspId) => {
+    if (!modulos.length) return 0;
+    const pres = modulos.filter((m) => regDe(aspId, m.orden)?.presente).length;
+    return Math.round((pres / modulos.length) * 100);
+  };
+  const celda = (aspId, dia) => {
+    const r = regDe(aspId, dia);
+    const estado = r ? (r.presente ? 'pre' : 'aus') : 'nil';
+    const btn = el('button', { class: 'asis-cell ' + estado, title: estado === 'pre' ? 'Presente' : estado === 'aus' ? 'Ausente' : 'Sin marcar' },
+      [icon(estado === 'pre' ? 'check' : estado === 'aus' ? 'close' : 'clock', 13)]);
+    if (gestor) btn.addEventListener('click', async () => {
+      try { await setAsistencia(aspId, dia, !(r && r.presente)); render(); } catch (e) { toast(e.message, 'err'); }
+    });
+    return el('td', { class: 'asis-td' }, [btn]);
+  };
+
+  return el('div', { class: 'card no-pad' }, [
+    el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('clock', 16), 'Asistencia por día']),
+      el('span', { class: 'muted small' }, 'clic para marcar presente/ausente')]),
+    el('div', { class: 'asis-wrap' }, [
+      el('table', { class: 'tbl rows asis-table' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), ...modulos.map((m) => el('th', { class: 'asis-th', title: m.titulo }, `D${m.orden}`)), el('th', {}, '%')])),
+        el('tbody', {}, aspirantes.map((a) => el('tr', {}, [
+          el('td', {}, el('strong', {}, a.nombre)),
+          ...modulos.map((m) => celda(a.id, m.orden)),
+          el('td', { class: asisPct(a.id) < 60 ? 'warn' : '' }, `${asisPct(a.id)}%`),
+        ]))),
+      ]),
+    ]),
   ]);
 }
 

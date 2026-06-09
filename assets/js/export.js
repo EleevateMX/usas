@@ -151,3 +151,45 @@ export function exportarConstancia(intento, academia) {
 </div></div></body></html>`;
   abrirParaImprimir(html, 'Constancia generada — usa “Guardar como PDF”');
 }
+
+// --------------------------- Reporte de academia ---------------------------
+export function exportarReporteAcademia(ses) {
+  const s = getState();
+  const aspirantes = s.tdAspirantes.filter((a) => a.sesionId === ses.id || a.examenSesionId === ses.id)
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  const modulos = [...s.tdModulos].sort((a, b) => a.orden - b.orden);
+  const liberados = modulos.filter((m) => m.liberado).length;
+  const progDe = (a) => (liberados && a.discord ? Math.round((Math.min(s.tdProgreso.filter((p) => p.completado && p.discord === a.discord).length, liberados) / liberados) * 100) : 0);
+  const asisDe = (a) => (modulos.length ? Math.round((modulos.filter((m) => s.tdAsistencia.find((x) => x.aspiranteId === a.id && x.dia === m.orden && x.presente)).length / modulos.length) * 100) : 0);
+  const intentoDe = (a) => (a.discord ? s.examenIntentos.find((i) => i.sesionId === ses.id && i.estado !== 'en_curso' && (i.discord || '').toLowerCase() === a.discord.toLowerCase()) : null);
+
+  const filas = aspirantes.map((a) => {
+    const i = intentoDe(a);
+    const ex = i ? `${i.aprobado ? 'Aprobado' : 'No aprobado'} (${i.total ? Math.round((i.puntaje / i.total) * 100) : 0}%)` : (a.examenHabilitado ? 'Habilitado' : '—');
+    return `<tr><td>${esc(a.nombre)}</td><td>${esc(a.hash || '—')}</td><td class="r">${progDe(a)}%</td><td class="r">${asisDe(a)}%</td><td>${esc(a.estado)}</td><td>${esc(ex)}</td></tr>`;
+  }).join('');
+
+  const sealUrl = new URL('assets/img/usms-seal.png', location.href).href;
+  const ahora = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short', timeZone: 'UTC' }) + ' UTC';
+  const aprobados = aspirantes.filter((a) => { const i = intentoDe(a); return i && i.aprobado; }).length;
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Academia — ${esc(ses.nombre)}</title>
+<style>
+  *{box-sizing:border-box} body{font-family:'Segoe UI',Arial,sans-serif;color:#0b1120;margin:0;padding:32px}
+  .head{display:flex;align-items:center;gap:16px;border-bottom:3px solid #0b1120;padding-bottom:14px;margin-bottom:16px}
+  .head img{width:70px;height:70px} .head h1{margin:0;font-size:19px} .head p{margin:2px 0 0;color:#555;font-size:12px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#7c5e1a;margin:18px 0 8px}
+  table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #e2e2e2;padding:6px 9px;text-align:left} th{background:#f3f3f3} td.r{text-align:right;font-variant-numeric:tabular-nums}
+  .foot{margin-top:24px;border-top:1px solid #ddd;padding-top:10px;color:#888;font-size:11px}
+  @media print{body{padding:0}}
+</style></head><body>
+  <div class="head"><img src="${sealUrl}" alt=""><div><h1>U.S. Marshals Service — Training Division</h1><p>Reporte de academia · ${esc(ahora)}</p></div></div>
+  <h2>${esc(ses.nombre)} · ${esc(ses.tipo)}</h2>
+  <p>${aspirantes.length} aspirantes · ${aprobados} aprobados · ${liberados}/${modulos.length} días liberados</p>
+  <h2>Roster y desempeño</h2>
+  <table><thead><tr><th>Aspirante</th><th>#HASH#</th><th>Estudio</th><th>Asistencia</th><th>Estado</th><th>Examen</th></tr></thead>
+  <tbody>${filas || '<tr><td colspan="6">Sin aspirantes</td></tr>'}</tbody></table>
+  <div class="foot">Documento interno y confidencial · U.S. Marshals Service · Training Division · GTAHUB Roleplay.</div>
+</body></html>`;
+  abrirParaImprimir(html, 'Reporte de academia generado — usa “Guardar como PDF”');
+}
