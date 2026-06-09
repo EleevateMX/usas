@@ -461,3 +461,7 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .academia.cerrada { opacity: .6; }
 .aca-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .aca-top .badge { margin-left: 6px; }
+
+.aca-foot { flex-wrap: wrap; gap: 8px; }
+.aca-resp { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 6px; }
+.aca-resp .tbl td { padding: 9px 10px; font-size: 12.5px; }

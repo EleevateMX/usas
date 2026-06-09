@@ -18,11 +18,8 @@ const PRESETS = {
   custom: { faciles: 10, medias: 8, dificiles: 6, duracionMin: 20 },
 };
 
-function examenURL(slug) {
-  return location.origin + location.pathname.replace(/[^/]*$/, '') + 'examen.html?s=' + slug;
-}
-
-let filtroSesion = '';
+const examenURL = (slug) => location.origin + location.pathname.replace(/[^/]*$/, '') + 'examen.html?s=' + slug;
+const expandidas = new Set();
 
 export function viewTraining() {
   const s = getState();
@@ -37,9 +34,8 @@ export function viewTraining() {
     media: act.filter((q) => q.dificultad === 'media').length,
     dificil: act.filter((q) => q.dificultad === 'dificil' || q.dificultad === 'muydificil').length,
   };
-
-  const intentosFiltrados = filtroSesion
-    ? intentos.filter((i) => i.sesionId === filtroSesion) : intentos;
+  const idsSes = new Set(s.examenSesiones.map((x) => x.id));
+  const huerfanos = intentos.filter((i) => !i.sesionId || !idsSes.has(i.sesionId));
 
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
@@ -57,40 +53,16 @@ export function viewTraining() {
       kpi('Banco de preguntas', s.examenPreguntas.length, `F:${disp.facil} · M:${disp.media} · D:${disp.dificil}`, '', 'normativa'),
     ]),
 
-    // Academias
+    // Academias — cada una es una sección con sus respuestas
     el('div', { class: 'card' }, [
       el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('training', 16), 'Academias / exámenes']),
-        el('span', { class: 'muted small' }, 'Cada academia es un enlace único')]),
+        el('span', { class: 'muted small' }, 'Cada academia tiene su enlace y su sección de respuestas')]),
       s.examenSesiones.length
         ? el('div', { class: 'list' }, s.examenSesiones.map((ses) => academiaRow(ses, intentos)))
         : el('p', { class: 'muted' }, esDirectiva() ? 'Crea una academia para generar el enlace del examen.' : 'No hay academias creadas.'),
     ]),
 
     el('div', { class: 'grid two' }, [
-      // Resultados
-      el('div', { class: 'card no-pad' }, [
-        el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('award', 16), 'Resultados']),
-          el('select', { onchange: (e) => { filtroSesion = e.target.value; render(); } },
-            [el('option', { value: '' }, 'Todas las academias'),
-             ...s.examenSesiones.map((x) => el('option', { value: x.id, ...(x.id === filtroSesion ? { selected: '' } : {}) }, x.nombre))])]),
-        intentosFiltrados.length
-          ? el('table', { class: 'tbl rows' }, [
-              el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), el('th', {}, 'Fecha'),
-                el('th', { class: 'right' }, 'Nota'), el('th', {}, 'Estado'), el('th', {}, '')])),
-              el('tbody', {}, intentosFiltrados.slice(0, 60).map((i) => el('tr', {}, [
-                el('td', {}, [el('strong', {}, i.nombre), i.discord ? el('div', { class: 'muted small' }, i.discord) : null]),
-                el('td', { class: 'muted small' }, fmtDate(i.fecha)),
-                el('td', { class: 'right' }, i.estado === 'en_curso' ? '—' : `${pctNota(i)}%`),
-                el('td', {}, estadoBadge(i)),
-                el('td', { class: 'right' }, esDirectiva()
-                  ? el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-                      confirmDialog(`¿Eliminar el intento de ${i.nombre}?`, async () => { try { await removeIntento(i.id); toast('Eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)])
-                  : null),
-              ]))),
-            ])
-          : el('div', { class: 'empty' }, 'Sin exámenes presentados.'),
-      ]),
-
       // Aspirantes DUSMT
       el('div', { class: 'card' }, [
         el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('personal', 16), 'Aspirantes (DUSMT)']), null]),
@@ -101,6 +73,14 @@ export function viewTraining() {
             ])))
           : el('p', { class: 'muted' }, 'Sin aspirantes DUSMT. Crea un mariscal con rango “DUSMT” en Personal.'),
       ]),
+      // Resultados sin academia (huérfanos)
+      huerfanos.length
+        ? el('div', { class: 'card no-pad' }, [
+            el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('award', 16), 'Otros resultados']),
+              el('span', { class: 'muted small' }, 'sin academia asociada')]),
+            tablaIntentos(huerfanos),
+          ])
+        : el('div', { class: 'card' }, [el('p', { class: 'muted', style: 'margin:0' }, 'Los resultados aparecen dentro de cada academia.')]),
     ]),
 
     // Banco de preguntas
@@ -128,13 +108,15 @@ export function viewTraining() {
 }
 
 function academiaRow(ses, intentos) {
-  const n = intentos.filter((i) => i.sesionId === ses.id).length;
-  const aprob = intentos.filter((i) => i.sesionId === ses.id && i.aprobado).length;
+  const propios = intentos.filter((i) => i.sesionId === ses.id);
+  const aprob = propios.filter((i) => i.aprobado).length;
   const url = examenURL(ses.slug);
+  const abierto = expandidas.has(ses.id);
+
   return el('div', { class: 'academia' + (ses.activa ? '' : ' cerrada') }, [
     el('div', { class: 'aca-top' }, [
       el('div', {}, [el('strong', {}, ses.nombre),
-        el('span', { class: 'badge rango', style: 'margin-left:8px' }, TIPOS[ses.tipo] || ses.tipo),
+        el('span', { class: 'badge rango' }, TIPOS[ses.tipo] || ses.tipo),
         ses.activa ? badge('activa', 'ok') : badge('cerrada', '')]),
       el('span', { class: 'muted small' }, `${ses.faciles}F · ${ses.medias}M · ${ses.dificiles}D · ${ses.duracionMin} min`),
     ]),
@@ -144,13 +126,35 @@ function academiaRow(ses, intentos) {
       el('a', { class: 'btn navy small', href: url, target: '_blank' }, 'Abrir'),
     ]),
     el('div', { class: 'row between aca-foot' }, [
-      el('span', { class: 'muted small' }, `${n} respuestas · ${aprob} aprobados · creada ${fmtDate(ses.fecha)}`),
+      el('button', { class: 'btn ghost small ic', onClick: () => { abierto ? expandidas.delete(ses.id) : expandidas.add(ses.id); render(); } },
+        [icon(abierto ? 'undo' : 'award', 14), `${abierto ? 'Ocultar' : 'Ver'} respuestas (${propios.length})`]),
+      el('span', { class: 'muted small' }, `${aprob} aprobados · creada ${fmtDate(ses.fecha)}`),
       esDirectiva() ? el('div', { class: 'nowrap' }, [
         el('button', { class: 'btn ghost small', onClick: async () => { try { await updateSesion(ses.id, { activa: !ses.activa }); toast(ses.activa ? 'Academia cerrada' : 'Academia reabierta'); render(); } catch (e) { toast(e.message, 'err'); } } }, ses.activa ? 'Cerrar' : 'Reabrir'),
         el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-          confirmDialog(`¿Eliminar la academia "${ses.nombre}"? Los resultados quedarán sin academia asociada.`, async () => { try { await removeSesion(ses.id); toast('Academia eliminada'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)]),
+          confirmDialog(`¿Eliminar la academia "${ses.nombre}"? Sus resultados quedarán como "Otros resultados".`, async () => { try { await removeSesion(ses.id); expandidas.delete(ses.id); toast('Academia eliminada'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)]),
       ]) : null,
     ]),
+    abierto ? el('div', { class: 'aca-resp' }, propios.length ? [tablaIntentos(propios)]
+      : [el('p', { class: 'muted small', style: 'padding:10px 4px' }, 'Aún nadie ha presentado esta academia.')]) : null,
+  ]);
+}
+
+function tablaIntentos(lista) {
+  return el('table', { class: 'tbl rows' }, [
+    el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), el('th', {}, 'Discord'), el('th', {}, 'Fecha'),
+      el('th', { class: 'right' }, 'Nota'), el('th', {}, 'Estado'), el('th', {}, '')])),
+    el('tbody', {}, lista.slice(0, 100).map((i) => el('tr', {}, [
+      el('td', {}, el('strong', {}, i.nombre)),
+      el('td', { class: 'muted small' }, i.discord || '—'),
+      el('td', { class: 'muted small' }, fmtDate(i.fecha)),
+      el('td', { class: 'right' }, i.estado === 'en_curso' ? '—' : `${pctNota(i)}%`),
+      el('td', {}, estadoBadge(i)),
+      el('td', { class: 'right' }, esDirectiva()
+        ? el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
+            confirmDialog(`¿Eliminar el intento de ${i.nombre}?`, async () => { try { await removeIntento(i.id); toast('Eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)])
+        : null),
+    ]))),
   ]);
 }
 

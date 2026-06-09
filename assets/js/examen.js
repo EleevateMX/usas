@@ -26,6 +26,7 @@ function vistaRegistro() {
 
   async function iniciar() {
     if (nombre.value.trim().length < 3) return toast('Escribe tu nombre completo.', 'err');
+    if (discord.value.trim().length < 2) return toast('Escribe tu usuario de Discord.', 'err');
     btn.disabled = true; btn.textContent = 'Preparando…';
     try {
       const { data, error } = await supabase.functions.invoke('examen-iniciar', {
