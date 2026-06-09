@@ -131,6 +131,7 @@ export async function loadPerfil() {
 export const rolActual = () => state.perfil?.rol || null;
 export const esDirectiva = () => ['Directive', 'Executive', 'Director'].includes(rolActual());
 export const esAdmin = () => ['Executive', 'Director'].includes(rolActual());
+export const esDirector = () => rolActual() === 'Director';
 export const misDivisiones = () => state.perfil?.divisiones || [];
 // Pertenece a la Training Division (o es cúpula Executive/Director, que ve todo).
 export const esTD = () => esAdmin() || misDivisiones().some((d) => {

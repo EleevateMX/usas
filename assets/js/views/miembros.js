@@ -1,4 +1,4 @@
-import { getState, esAdmin, updatePerfil, removePerfil, loadAll } from '../store.js';
+import { getState, esAdmin, esDirector, updatePerfil, removePerfil, loadAll } from '../store.js';
 import { crearMiembro, cambiarPassword } from '../auth.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge } from '../ui.js';
 import { icon } from '../icons.js';
@@ -10,6 +10,7 @@ export function viewMiembros() {
   const s = getState();
   const yo = s.perfil;
   const admin = esAdmin();
+  const director = esDirector();
 
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
@@ -19,7 +20,7 @@ export function viewMiembros() {
 
     el('div', { class: 'card info-strip' }, [
       el('span', { class: 'strip-ico' }, [icon('miembros', 22)]),
-      el('p', { class: 'muted small' }, 'Cadena de mando: Supervisory · Directive · Executive · Director. Solo Executive/Director crean miembros, cambian roles y asignan divisiones. La Normativa la edita Directive+. El panel de Training Division solo lo ven los miembros con la división “Training Division” marcada (y la cúpula).'),
+      el('p', { class: 'muted small' }, 'Cadena de mando: Supervisory · Directive · Executive · Director. Executive/Director crean miembros y cambian roles; las divisiones las asigna solo el Director. La Normativa la edita Directive+. El panel de Training Division solo lo ven los miembros con la división “Training Division” marcada (y la cúpula).'),
     ]),
 
     el('div', { class: 'card no-pad' }, [
@@ -35,7 +36,7 @@ export function viewMiembros() {
             el('span', { class: 'chips' }, (p.divisiones || []).length
               ? p.divisiones.map((d) => el('span', { class: 'chip' }, d))
               : [el('span', { class: 'muted small' }, '—')]),
-            admin ? el('button', { class: 'icon-btn', title: 'Editar divisiones', onClick: () => openDivisiones(p) }, [icon('edit', 14)]) : null,
+            director ? el('button', { class: 'icon-btn', title: 'Editar divisiones (solo Director)', onClick: () => openDivisiones(p) }, [icon('edit', 14)]) : null,
           ]),
           el('td', { class: 'right' }, admin && p.id !== yo?.id
             ? el('button', { class: 'icon-btn', title: 'Eliminar perfil', onClick: () =>
