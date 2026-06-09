@@ -578,6 +578,13 @@ export async function removeAspirante(id) {
   if (error) throw error;
   await loadAll();
 }
+// Habilita (o quita) el examen para todo el roster de una academia.
+export async function habilitarExamenAcademia(sesionId, habilitado) {
+  const patch = habilitado ? { examen_sesion_id: sesionId, examen_habilitado: true } : { examen_habilitado: false };
+  const { error } = await supabase.from('td_aspirantes').update(patch).eq('sesion_id', sesionId);
+  if (error) throw error;
+  await loadAll();
+}
 
 export async function addSeguimiento(s) {
   const { error } = await supabase.from('td_seguimiento').insert({

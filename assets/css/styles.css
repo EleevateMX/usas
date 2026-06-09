@@ -954,3 +954,12 @@ tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .aula-lema.center { justify-content: center; margin: 2px 0 6px; }
 .ex-card.aula-login { text-align: center; }
 .ex-card.aula-login .auth-field { text-align: left; }
+
+/* Academias — entradas clicables a su detalle */
+.aca-entry {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left;
+  background: var(--navy-850); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  color: var(--text); cursor: pointer; font-family: inherit;
+}
+.aca-entry:hover { border-color: var(--gold); background: var(--navy-800); }
+.aca-entry .ico { color: var(--gold-soft); }

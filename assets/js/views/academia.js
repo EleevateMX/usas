@@ -5,7 +5,7 @@
 // ===========================================================================
 import { getState, esTD, addModulo, updateModulo, removeModulo,
   addAspirante, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
-  addAnuncio, updateAnuncio, removeAnuncio, crearAcademiaConRoster } from '../store.js';
+  addAnuncio, updateAnuncio, removeAnuncio, crearAcademiaConRoster, habilitarExamenAcademia } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate, fmtDateTime } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -13,15 +13,23 @@ import { abrirLectorManual } from '../manual-reader.js';
 import { MANUALES } from '../manuales.js';
 
 const portalURL = () => location.origin + location.pathname.replace(/[^/]*$/, '') + 'academia.html';
+const examenURL = (slug) => location.origin + location.pathname.replace(/[^/]*$/, '') + 'examen.html?s=' + slug;
 const TIPO_LBL = { nota: 'Nota', asistencia: 'Asistencia', calificacion: 'Calificación' };
 const TIPO_KIND = { nota: '', asistencia: 'warn', calificacion: 'gold' };
+const pctNota = (i) => (i.total ? Math.round((i.puntaje / i.total) * 100) : 0);
+let academiaAbierta = null; // id de la sesión/academia abierta en detalle
 
 export function viewAcademia() {
   const s = getState();
   const gestor = esTD();
+  if (academiaAbierta) {
+    const ses = s.examenSesiones.find((x) => x.id === academiaAbierta);
+    if (ses) return academiaDetalle(ses, s, gestor);
+    academiaAbierta = null;
+  }
   const modulos = [...s.tdModulos].sort((a, b) => a.orden - b.orden);
   const liberados = modulos.filter((m) => m.liberado);
-  const enCurso = s.examenSesiones.filter((x) => x.activa);
+  const academias = [...s.examenSesiones].sort((a, b) => (b.activa - a.activa) || (b.fecha || '').localeCompare(a.fecha || ''));
 
   const progresoDe = (asp) => {
     if (!liberados.length) return 0;
@@ -57,16 +65,18 @@ export function viewAcademia() {
           el('button', { class: 'btn ghost small ic', onClick: () => navigator.clipboard.writeText(url).then(() => toast('Enlace copiado')).catch(() => toast('No se pudo copiar', 'err')) }, [icon('copy', 14), 'Copiar']),
           el('a', { class: 'btn navy small', href: url, target: '_blank' }, 'Abrir'),
         ]),
-        el('p', { class: 'muted small' }, 'Sin login: el aspirante entra con su nombre y Discord, y estudia los temas liberados.'),
+        el('p', { class: 'muted small' }, 'Sin registro: el aspirante entra con su Nombre_Apellido y su #HASH# (precargado al crear la academia).'),
       ]),
       el('div', { class: 'card' }, [
-        el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('clock', 16), 'Academia en curso']), null]),
-        enCurso.length
-          ? el('div', { class: 'list' }, enCurso.map((x) => el('div', { class: 'list-item' }, [
-              el('div', {}, [el('strong', {}, x.nombre), el('div', { class: 'muted small' }, `${x.tipo} · ${x.duracionMin} min`)]),
-              badge('activa', 'ok'),
+        el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('clock', 16), 'Academias']),
+          el('span', { class: 'muted small' }, 'entra para ver aspirantes y examen')]),
+        academias.length
+          ? el('div', { class: 'list' }, academias.map((x) => el('button', { class: 'aca-entry', onClick: () => { academiaAbierta = x.id; render(); } }, [
+              el('div', {}, [el('strong', {}, x.nombre),
+                el('div', { class: 'muted small' }, `${TIPOS_AC[x.tipo] || x.tipo} · ${x.duracionMin} min · ${s.tdAspirantes.filter((a) => a.sesionId === x.id).length} aspirantes`)]),
+              el('span', { class: 'row gap nowrap' }, [x.activa ? badge('activa', 'ok') : badge('cerrada', ''), icon('referencia', 16)]),
             ])))
-          : el('p', { class: 'muted small' }, 'No hay academia activa. Actívala en Training Division.'),
+          : el('p', { class: 'muted small' }, gestor ? 'Crea una con “Agregar Academia”.' : 'No hay academias.'),
       ]),
     ]),
 
@@ -333,6 +343,97 @@ function openAnuncio(an = null) {
   modal(edit ? 'Editar anuncio' : 'Nuevo anuncio', body, { wide: true });
 }
 
+// ----------------------- Detalle de una academia ---------------------------
+function academiaDetalle(ses, s, gestor) {
+  const aspirantes = s.tdAspirantes.filter((a) => a.sesionId === ses.id || a.examenSesionId === ses.id)
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  const liberados = s.tdModulos.filter((m) => m.liberado).length;
+  const progDe = (a) => {
+    if (!liberados || !a.discord) return 0;
+    const h = s.tdProgreso.filter((p) => p.completado && p.discord === a.discord).length;
+    return Math.round((Math.min(h, liberados) / liberados) * 100);
+  };
+  const intentoDe = (a) => (a.discord
+    ? s.examenIntentos.find((i) => i.sesionId === ses.id && i.estado !== 'en_curso' && (i.discord || '').toLowerCase() === a.discord.toLowerCase())
+    : null);
+  const progMedio = aspirantes.length ? Math.round(aspirantes.reduce((x, a) => x + progDe(a), 0) / aspirantes.length) : 0;
+  const presentados = aspirantes.filter((a) => intentoDe(a)).length;
+  const aprobados = aspirantes.filter((a) => { const i = intentoDe(a); return i && i.aprobado; }).length;
+  const url = examenURL(ses.slug);
+
+  return el('div', { class: 'view' }, [
+    el('div', { class: 'toolbar' }, [
+      el('div', { class: 'row gap', style: 'align-items:center;flex-wrap:wrap' }, [
+        el('button', { class: 'btn ghost small ic', onClick: () => { academiaAbierta = null; render(); } }, [icon('undo', 15), 'Academias']),
+        el('h2', {}, ses.nombre),
+        el('span', { class: 'badge rango' }, TIPOS_AC[ses.tipo] || ses.tipo),
+        ses.activa ? badge('activa', 'ok') : badge('cerrada', ''),
+      ]),
+      gestor ? el('button', { class: 'btn navy small ic', onClick: () => openAspiranteIndividual(ses.id) }, [icon('plus', 14), 'Aspirante']) : null,
+    ]),
+
+    el('div', { class: 'grid kpis' }, [
+      kpi('Aspirantes', aspirantes.length, 'en la academia', 'gold', 'personal'),
+      kpi('Progreso medio', progMedio + '%', 'de estudio', 'green', 'training'),
+      kpi('Presentaron', presentados, `${aprobados} aprobados`, '', 'award'),
+      kpi('Examen', ses.duracionMin + ' min', `${ses.faciles}F · ${ses.medias}M · ${ses.dificiles}D`, '', 'clock'),
+    ]),
+
+    el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('award', 16), 'Examen de la academia']), null]),
+      el('div', { class: 'row gap aca-link' }, [
+        el('input', { class: 'search', style: 'flex:1;min-width:0', value: url, readonly: '' }),
+        el('button', { class: 'btn ghost small ic', onClick: () => navigator.clipboard.writeText(url).then(() => toast('Enlace copiado')).catch(() => toast('No se pudo copiar', 'err')) }, [icon('copy', 14), 'Copiar']),
+        el('a', { class: 'btn navy small', href: url, target: '_blank' }, 'Abrir'),
+      ]),
+      gestor ? el('div', { class: 'row gap', style: 'margin-top:10px;flex-wrap:wrap' }, [
+        el('button', { class: 'btn gold small', onClick: () => toggleExamenTodos(ses.id, true) }, 'Habilitar examen a todos'),
+        el('button', { class: 'btn ghost small', onClick: () => toggleExamenTodos(ses.id, false) }, 'Quitar a todos'),
+        el('span', { class: 'muted small' }, 'Al habilitarlo, cada aspirante ve el botón de examen en su aula.'),
+      ]) : null,
+    ]),
+
+    el('div', { class: 'card no-pad' }, [
+      el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('personal', 16), 'Aspirantes y progreso']), null]),
+      aspirantes.length
+        ? el('table', { class: 'tbl rows' }, [
+            el('thead', {}, el('tr', {}, [el('th', {}, 'Aspirante'), el('th', {}, '#HASH#'), el('th', {}, 'Acceso'),
+              el('th', {}, 'Progreso'), el('th', {}, 'Examen'), el('th', {}, 'Seg.'), el('th', {}, '')])),
+            el('tbody', {}, aspirantes.map((a) => filaAspiranteAcademia(a, ses, progDe(a), intentoDe(a), gestor))),
+          ])
+        : el('div', { class: 'empty' }, 'Sin aspirantes en esta academia. Agrégalos con “Aspirante”.'),
+    ]),
+  ]);
+}
+
+function filaAspiranteAcademia(a, ses, pct, intento, gestor) {
+  const notas = getState().tdSeguimiento.filter((x) => x.aspiranteId === a.id).length;
+  const examenCell = intento
+    ? el('span', { class: 'row gap nowrap' }, [badge(intento.aprobado ? 'aprobado' : 'no aprobado', intento.aprobado ? 'ok' : 'red'), el('span', { class: 'muted small' }, `${pctNota(intento)}%`)])
+    : (a.examenHabilitado ? badge('habilitado', 'gold') : badge('no asignado', ''));
+  return el('tr', {}, [
+    el('td', {}, [el('strong', {}, a.nombre)]),
+    el('td', { class: 'muted small' }, a.hash || '—'),
+    el('td', {}, a.registrado ? badge('listo', 'ok') : badge('sin #HASH#', 'warn')),
+    el('td', {}, el('div', { class: 'prog-cell' }, [el('div', { class: 'prog-bar' }, [el('div', { class: 'prog-fill', style: `width:${pct}%` })]), el('span', { class: 'muted small' }, `${pct}%`)])),
+    el('td', {}, examenCell),
+    el('td', {}, el('button', { class: 'btn ghost small ic', onClick: () => openSeguimiento(a) }, [icon('file', 14), `${notas}`])),
+    el('td', { class: 'right nowrap' }, gestor ? [
+      el('button', { class: 'btn ghost small', onClick: async () => {
+        try { await updateAspirante(a.id, a.examenHabilitado ? { examenHabilitado: false } : { examenSesionId: ses.id, examenHabilitado: true }); toast('Examen actualizado'); render(); }
+        catch (e) { toast(e.message, 'err'); }
+      } }, a.examenHabilitado ? 'Quitar exam.' : 'Dar exam.'),
+      el('button', { class: 'icon-btn', title: 'Quitar de la academia', onClick: () =>
+        confirmDialog(`¿Quitar a ${a.nombre} de la academia?`, async () => { try { await removeAspirante(a.id); toast('Aspirante eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 14)]),
+    ] : null),
+  ]);
+}
+
+async function toggleExamenTodos(sesionId, habilitado) {
+  try { await habilitarExamenAcademia(sesionId, habilitado); toast(habilitado ? 'Examen habilitado a todos' : 'Examen quitado a todos'); render(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
 // ----------------------------- Agregar Academia ----------------------------
 // Crea una academia y precarga su roster: cada aspirante queda listo para
 // ingresar al aula con su Nombre_Apellido + #HASH# (sin registrarse).
@@ -409,14 +510,14 @@ function openAgregarAcademia() {
 }
 
 // Alta individual de un aspirante a una academia existente.
-function openAspiranteIndividual() {
+function openAspiranteIndividual(sesionPre = '') {
   const s = getState();
   const f = {};
   f.nombre = el('input', { placeholder: 'Nombre_Apellido' });
   f.hash = el('input', { placeholder: '#HASH#' });
   f.discord = el('input', { placeholder: 'Discord (opcional)' });
   f.sesion = el('select', {}, [el('option', { value: '' }, '— Academia (opcional) —'),
-    ...s.examenSesiones.map((x) => el('option', { value: x.id }, `${x.nombre}${x.activa ? '' : ' (cerrada)'}`))]);
+    ...s.examenSesiones.map((x) => el('option', { value: x.id, ...(x.id === sesionPre ? { selected: '' } : {}) }, `${x.nombre}${x.activa ? '' : ' (cerrada)'}`))]);
   async function save() {
     if (f.nombre.value.trim().length < 3) return toast('Nombre completo', 'err');
     if (f.hash.value.trim().length < 1) return toast('Indica el #HASH#', 'err');
