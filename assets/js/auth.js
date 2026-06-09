@@ -3,7 +3,7 @@
 // ===========================================================================
 import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
-import { marshalBadge, icon } from './icons.js';
+import { sealImg, icon } from './icons.js';
 
 export async function getSession() {
   const { data } = await supabase.auth.getSession();
@@ -56,7 +56,7 @@ export async function viewLogin(onDone) {
 
   const card = el('div', { class: 'auth-card' }, [
     el('div', { class: 'auth-brand' }, [
-      marshalBadge(82),
+      sealImg(104),
       el('div', { class: 'brand-title xl' }, 'U.S. MARSHALS SERVICE'),
       el('div', { class: 'brand-sub' }, 'San Andreas · Centro de Mando'),
     ]),

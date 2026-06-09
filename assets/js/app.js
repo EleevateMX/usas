@@ -5,14 +5,19 @@ import { ROUTES, initRouter, render } from './router.js';
 import { getState, setSession, loadPerfil, loadAll, esAdmin, esDirectiva } from './store.js';
 import { getSession, onAuthChange, signOut, viewLogin } from './auth.js';
 import { el, toast } from './ui.js';
-import { icon, marshalBadge } from './icons.js';
+import { icon, sealImg } from './icons.js';
 import { abrirCuenta } from './views/miembros.js';
 
 const elById = (id) => document.getElementById(id);
 
+function hideLoader() {
+  const l = elById('loader');
+  if (l) { l.classList.add('hide'); setTimeout(() => l.remove(), 450); }
+}
+
 function buildBrand() {
   const host = elById('badge-host');
-  if (host && !host.firstChild) host.append(marshalBadge(40));
+  if (host && !host.firstChild) host.append(sealImg(42));
 }
 
 function buildNav() {
@@ -58,6 +63,7 @@ async function enterApp() {
   initRouter();
   if (!location.hash || !ROUTES[location.hash.replace(/^#/, '')]) location.hash = '#/dashboard';
   render();
+  hideLoader();
 
   const toggle = elById('menu-toggle');
   const sidebar = elById('sidebar');
@@ -76,6 +82,7 @@ async function showGate() {
     setSession(s);
     await enterApp();
   }));
+  hideLoader();
 }
 
 async function init() {

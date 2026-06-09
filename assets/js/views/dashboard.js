@@ -1,6 +1,6 @@
 import { getState, balance } from '../store.js';
 import { el, fmtMoney, fmtDate, badge } from '../ui.js';
-import { icon } from '../icons.js';
+import { icon, sealImg } from '../icons.js';
 
 const h3 = (ic, text) => el('h3', { class: 'h-ico' }, [icon(ic, 17), text]);
 
@@ -36,6 +36,20 @@ export function viewDashboard() {
     ]);
 
   return el('div', { class: 'view' }, [
+    // Hero
+    el('div', { class: 'hero' }, [
+      el('div', { class: 'hero-seal' }, [sealImg(96)]),
+      el('div', { class: 'hero-txt' }, [
+        el('div', { class: 'hero-kicker' }, 'Centro de Mando'),
+        el('h1', { class: 'hero-title' }, s.meta.nombreFaccion),
+        el('div', { class: 'hero-motto' }, [
+          el('span', {}, 'Justicia'), el('span', { class: 'sep' }, '·'),
+          el('span', {}, 'Integridad'), el('span', { class: 'sep' }, '·'), el('span', {}, 'Servicio'),
+        ]),
+        el('div', { class: 'hero-meta' }, `${s.perfil?.nombre || ''} · ${s.perfil?.rol || '—'} · ${s.normativa.length} artículos vigentes`),
+      ]),
+    ]),
+
     el('div', { class: 'grid kpis' }, [
       kpi('Personal activo', activos, `${inactivos} inactivos / LOA`, 'gold', 'personal'),
       kpi('Tesorería', fmtMoney(balance()), `${s.finanzas.length} movimientos`, 'green', 'finanzas'),
@@ -87,10 +101,5 @@ export function viewDashboard() {
         : null,
     ]),
 
-    el('div', { class: 'card welcome' }, [
-      el('h3', {}, `Centro de Mando — ${s.meta.nombreFaccion}`),
-      el('p', { class: 'muted' }, 'Panel de control de personal, tesorería y Asuntos Internos. Los datos se sincronizan en la nube (Supabase) entre todo el liderazgo según los permisos de cada rango.'),
-      el('p', { class: 'muted small' }, `Normativa vigente: ${s.normativa.length} artículos · Sesión: ${s.perfil?.nombre || ''} (${s.perfil?.rol || '—'}).`),
-    ]),
   ]);
 }

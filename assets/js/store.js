@@ -75,6 +75,7 @@ const mapIntento = (r) => ({
   puntaje: Number(r.puntaje) || 0, total: r.total || 0, aprobado: r.aprobado,
   estado: r.estado, duracionSeg: r.duracion_seg, sesionId: r.sesion_id,
   alertas: r.alertas || 0, eventos: r.eventos || [],
+  preguntas: r.preguntas || [], respuestas: r.respuestas || {},
 });
 const mapSesion = (r) => ({
   id: r.id, slug: r.slug, nombre: r.nombre, tipo: r.tipo,
@@ -105,7 +106,7 @@ export async function loadAll() {
     supabase.from('sanciones').select('*').order('fecha', { ascending: false }),
     supabase.from('perfiles').select('*').order('created_at'),
     supabase.from('examen_preguntas').select('*').order('categoria'),
-    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id, alertas, eventos').order('created_at', { ascending: false }),
+    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id, alertas, eventos, preguntas, respuestas').order('created_at', { ascending: false }),
     supabase.from('examen_sesiones').select('*').order('created_at', { ascending: false }),
   ]);
   state.personal = (personal.data || []).map(mapPersona);

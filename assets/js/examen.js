@@ -5,7 +5,7 @@
 // ===========================================================================
 import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
-import { marshalBadge, icon } from './icons.js';
+import { sealImg, icon } from './icons.js';
 
 const SLUG = new URLSearchParams(location.search).get('s') || '';
 
@@ -43,7 +43,7 @@ function vistaRegistro() {
   [nombre, discord].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') iniciar(); }));
 
   montar(el('div', { class: 'ex-card' }, [
-    el('div', { class: 'ex-brand' }, [marshalBadge(74),
+    el('div', { class: 'ex-brand' }, [sealImg(86),
       el('div', { class: 'brand-title xl' }, 'TRAINING DIVISION'),
       el('div', { class: 'brand-sub' }, 'Examen teórico · AMTP / Academia')]),
     el('div', { class: 'auth-divider' }, [el('span', {}, 'REGISTRO DE ASPIRANTE')]),
@@ -126,7 +126,7 @@ async function enviarExamen(auto) {
   const faltan = estado.preguntas.length - Object.keys(estado.respuestas).length;
   if (!auto && faltan > 0 && !confirm(`Te faltan ${faltan} preguntas por responder. ¿Enviar de todas formas? No podrás volver.`)) return;
   estado.enviando = true; clearInterval(estado.timer); stopMonitor();
-  montar(el('div', { class: 'ex-card' }, [el('div', { class: 'ex-load' }, [marshalBadge(60), el('p', {}, 'Corrigiendo examen…')])]));
+  montar(el('div', { class: 'ex-card' }, [el('div', { class: 'ex-load' }, [sealImg(64), el('p', {}, 'Corrigiendo examen…')])]));
   try {
     const { data, error } = await supabase.functions.invoke('examen-enviar', {
       body: { intentoId: estado.intentoId, token: estado.token, respuestas: estado.respuestas },
@@ -140,7 +140,7 @@ async function enviarExamen(auto) {
 function vistaResultado(r, auto) {
   const ok = r.aprobado;
   montar(el('div', { class: 'ex-card' }, [
-    el('div', { class: 'ex-brand' }, [marshalBadge(70)]),
+    el('div', { class: 'ex-brand' }, [sealImg(80)]),
     el('div', { class: `ex-result ${ok ? 'ok' : 'no'}` }, [
       el('div', { class: 'ex-res-ico' }, [icon(ok ? 'check' : 'close', 40)]),
       el('h2', {}, ok ? 'APROBADO' : 'NO APROBADO'),
@@ -195,7 +195,7 @@ function stopMonitor() {
 
 function vistaSinEnlace() {
   montar(el('div', { class: 'ex-card' }, [
-    el('div', { class: 'ex-brand' }, [marshalBadge(70),
+    el('div', { class: 'ex-brand' }, [sealImg(80),
       el('div', { class: 'brand-title xl' }, 'TRAINING DIVISION')]),
     el('div', { class: 'ex-result no' }, [
       el('div', { class: 'ex-res-ico' }, [icon('close', 36)]),

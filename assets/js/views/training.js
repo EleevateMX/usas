@@ -151,11 +151,58 @@ function tablaIntentos(lista) {
       el('td', { class: 'muted small' }, fmtDate(i.fecha)),
       el('td', { class: 'right' }, i.estado === 'en_curso' ? '—' : `${pctNota(i)}%`),
       el('td', {}, estadoBadge(i)),
-      el('td', { class: 'right' }, esDirectiva()
-        ? el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-            confirmDialog(`¿Eliminar el intento de ${i.nombre}?`, async () => { try { await removeIntento(i.id); toast('Eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)])
-        : null),
+      el('td', { class: 'right nowrap' }, [
+        i.estado !== 'en_curso'
+          ? el('button', { class: 'icon-btn', title: 'Ver preguntas', onClick: () => openRevision(i) }, [icon('file', 15)]) : null,
+        esDirectiva()
+          ? el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
+              confirmDialog(`¿Eliminar el intento de ${i.nombre}?`, async () => { try { await removeIntento(i.id); toast('Eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)]) : null,
+      ]),
     ]))),
+  ]);
+}
+
+// Revisión de un examen: cada pregunta con la respuesta del aspirante vs la correcta.
+function openRevision(i) {
+  const s = getState();
+  const byId = new Map(s.examenPreguntas.map((q) => [q.id, q]));
+  const orden = [...(i.preguntas || [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+  const items = orden.map((pm) => byId.get(pm.id)).filter(Boolean);
+  const aciertos = items.filter((q) => Number(i.respuestas?.[q.id]) === q.correcta).length;
+
+  const body = el('div', { class: 'revision' }, [
+    el('div', { class: 'rev-head' }, [
+      el('div', {}, [el('strong', {}, i.nombre), i.discord ? el('span', { class: 'muted small' }, ` · ${i.discord}`) : null]),
+      el('span', { class: `badge ${i.aprobado ? 'ok' : 'red'}` }, `${pctNota(i)}% · ${i.puntaje}/${i.total}`),
+    ]),
+    items.length
+      ? el('div', { class: 'rev-list' }, items.map((q, idx) => revisionCard(q, i.respuestas?.[q.id], idx)))
+      : el('p', { class: 'muted' }, 'Este intento no guardó el detalle de preguntas (resultado de demostración).'),
+    el('div', { class: 'row gap end' }, [el('button', { class: 'btn ghost', onClick: closeModal }, 'Cerrar')]),
+  ]);
+  modal(`Revisión — ${i.nombre} (${aciertos}/${items.length || i.total})`, body, { wide: true });
+}
+
+function revisionCard(q, elegida, num) {
+  const tieneResp = elegida !== undefined && elegida !== null;
+  const acierto = tieneResp && Number(elegida) === q.correcta;
+  return el('div', { class: 'rev-q' + (acierto ? ' ok' : ' no') }, [
+    el('div', { class: 'rev-q-head' }, [
+      el('span', { class: 'ex-num' }, String(num + 1)),
+      el('span', { class: 'rev-enun' }, q.enunciado),
+      el('span', { class: `badge ${acierto ? 'ok' : 'red'}` }, acierto ? 'Correcta' : (tieneResp ? 'Incorrecta' : 'Sin responder')),
+    ]),
+    el('div', { class: 'rev-opts' }, q.opciones.map((texto, idx) => {
+      const esCorrecta = idx === q.correcta;
+      const esElegida = tieneResp && Number(elegida) === idx;
+      const cls = esCorrecta ? 'correcta' : (esElegida ? 'elegida-mal' : '');
+      return el('div', { class: 'rev-opt ' + cls }, [
+        el('span', { class: 'ex-key' }, String.fromCharCode(65 + idx)),
+        el('span', {}, texto),
+        esCorrecta ? el('span', { class: 'rev-tag' }, [icon('check', 13), 'Correcta']) : null,
+        (esElegida && !esCorrecta) ? el('span', { class: 'rev-tag mal' }, [icon('close', 13), 'Su respuesta']) : null,
+      ]);
+    })),
   ]);
 }
 

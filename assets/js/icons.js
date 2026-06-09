@@ -53,6 +53,16 @@ export function icon(name, size = 18) {
   return span;
 }
 
+// Sello oficial del U.S. Marshals Service (archivo SVG en assets/img).
+export function sealImg(size = 96) {
+  const img = document.createElement('img');
+  img.src = 'assets/img/usms-seal.svg';
+  img.width = size; img.height = size;
+  img.alt = 'U.S. Marshals Service';
+  img.className = 'seal-img';
+  return img;
+}
+
 // Insignia / estrella del U.S. Marshal (escudo: anillo dorado con texto curvo,
 // borde de cuentas, estrella de 5 puntas biselada y medallón central).
 export function marshalBadge(size = 96) {
