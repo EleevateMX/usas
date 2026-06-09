@@ -510,8 +510,16 @@ export async function removeModulo(id) {
 
 export async function addAspirante(a) {
   const { error } = await supabase.from('td_aspirantes').insert({
-    nombre: a.nombre, discord: a.discord, sesion_id: a.sesionId || null, estado: a.estado || 'En curso',
+    nombre: a.nombre, discord: a.discord || null, sesion_id: a.sesionId || null, estado: a.estado || 'En curso',
   });
+  if (error) throw error;
+  await loadAll();
+}
+// Alta masiva de aspirantes permitidos (roster de la academia, sin Discord aún).
+export async function addAspirantesBulk(nombres, sesionId) {
+  const rows = nombres.map((n) => ({ nombre: n, sesion_id: sesionId || null, estado: 'En curso' }));
+  if (!rows.length) return;
+  const { error } = await supabase.from('td_aspirantes').insert(rows);
   if (error) throw error;
   await loadAll();
 }

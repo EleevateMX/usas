@@ -54,7 +54,7 @@ function vistaAcceso(modo = 'login') {
       el('div', { class: 'brand-sub' }, 'Training Division · Portal de estudio')]),
     el('div', { class: 'aula-tabs' }, [tab('Ingresar', 'login'), tab('Registrarme', 'registro')]),
     el('p', { class: 'muted small center' }, esReg
-      ? 'Regístrate una sola vez. Tu #HASH# será tu llave de acceso: guárdalo.'
+      ? 'Regístrate una sola vez. Debes estar en la lista de aspirantes de la academia; tu #HASH# será tu llave de acceso, guárdalo.'
       : 'Ingresa con tu Nombre_Apellido y tu #HASH#. Tu Discord no se pide al ingresar, por seguridad.'),
     el('label', { class: 'auth-field' }, [el('span', { class: 'auth-lbl' }, 'Nombre y Apellido'),
       el('div', { class: 'auth-input' }, [icon('user', 16), nombre])]),
@@ -97,6 +97,9 @@ function vistaPortal() {
       el('button', { class: 'btn ghost small', onClick: salir }, 'Salir'),
     ]),
 
+    heroBienvenida(d.aspirante?.nombre || 'Aspirante'),
+    misionVision(),
+
     el('div', { class: 'portal-prog' }, [
       el('div', { class: 'row between' }, [el('strong', {}, 'Tu progreso de estudio'), el('span', { class: 'muted small' }, `${hechos}/${liberados.length} temas · ${pct}%`)]),
       el('div', { class: 'prog-bar lg' }, [el('div', { class: 'prog-fill', style: `width:${pct}%` })]),
@@ -121,6 +124,34 @@ function vistaPortal() {
 }
 
 function estadoTxt(e) { return e === 'Aprobado' ? 'Aprobado' : e === 'Baja' ? 'Baja' : 'En curso'; }
+
+function heroBienvenida(nombre) {
+  return el('div', { class: 'aula-hero' }, [
+    el('div', { class: 'aula-kicker' }, 'U.S. Marshals National Training Academy'),
+    el('h2', { class: 'aula-welcome' }, `Bienvenido/a, ${nombre}`),
+    el('p', { class: 'aula-sub' }, 'Tu formación como Deputy U.S. Marshal empieza aquí. Avanza día a día, estudia los manuales y prepárate para el examen.'),
+    el('div', { class: 'aula-lema' }, [
+      el('span', { class: 'lema-chip' }, 'Justicia'),
+      el('span', { class: 'lema-chip' }, 'Integridad'),
+      el('span', { class: 'lema-chip' }, 'Servicio'),
+    ]),
+  ]);
+}
+
+const FUNCIONES = ['Captura de fugitivos', 'Traslado de prisioneros', 'Protección judicial', 'Protección de testigos', 'Órdenes judiciales', 'Bienes incautados'];
+function misionVision() {
+  return el('div', { class: 'aula-mv' }, [
+    el('div', { class: 'mv-col' }, [
+      el('div', { class: 'mv-head' }, [icon('shield', 16), el('strong', {}, 'Misión')]),
+      el('p', {}, 'Proteger el sistema de justicia federal de San Andreas: ejecutar órdenes judiciales, custodiar y trasladar prisioneros, resguardar tribunales, jueces y testigos, y capturar fugitivos — siempre con Justicia, Integridad y Servicio.'),
+    ]),
+    el('div', { class: 'mv-col' }, [
+      el('div', { class: 'mv-head' }, [icon('star', 16), el('strong', {}, 'Visión')]),
+      el('p', {}, 'Formar Deputies disciplinados y profesionales, referentes de la ley por su integridad, criterio y compromiso con la comunidad.'),
+    ]),
+    el('div', { class: 'mv-funcs' }, FUNCIONES.map((f) => el('span', { class: 'func-chip' }, [icon('check', 12), f]))),
+  ]);
+}
 
 function examenCard(ex, asp) {
   if (!ex || !ex.habilitado) return null;

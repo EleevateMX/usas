@@ -893,3 +893,33 @@ tr.elegible-row { background: rgba(217,181,61,.06); }
 tr.elegible-row td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .alert-ico.gold { color: var(--gold); }
 .badge.gold { background: rgba(217,181,61,.16); color: var(--gold); }
+
+/* =========================================================================
+   Aula DUSMT — hero de bienvenida y misión/visión
+   ========================================================================= */
+.aula-hero {
+  border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin: 4px 0 14px;
+  background:
+    radial-gradient(600px 200px at 90% -40%, rgba(217,181,61,.12), transparent 60%),
+    linear-gradient(160deg, var(--navy-700), var(--navy-850));
+}
+.aula-kicker { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-soft); }
+.aula-welcome { font-size: 24px; margin: 4px 0 6px; }
+.aula-sub { color: var(--muted); margin: 0 0 12px; font-size: 14px; }
+.aula-lema { display: flex; flex-wrap: wrap; gap: 8px; }
+.lema-chip {
+  font-family: 'Oswald', sans-serif; letter-spacing: 1px; font-size: 12px; text-transform: uppercase;
+  color: var(--gold); border: 1px solid rgba(217,181,61,.45); border-radius: 99px; padding: 4px 14px;
+  background: rgba(217,181,61,.08);
+}
+.aula-mv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.mv-col { background: var(--navy-850); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
+.mv-head { display: flex; align-items: center; gap: 8px; color: var(--gold-soft); margin-bottom: 6px; }
+.mv-col p { margin: 0; font-size: 14px; line-height: 1.55; }
+.mv-funcs { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 7px; }
+.func-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text);
+  background: var(--navy-800); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px;
+}
+.func-chip .ico { color: var(--green); }
+@media (max-width: 640px) { .aula-mv { grid-template-columns: 1fr; } .aula-welcome { font-size: 20px; } }

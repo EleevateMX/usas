@@ -4,7 +4,7 @@
 //  DUSMT y les dan seguimiento. El portal de estudio público es academia.html.
 // ===========================================================================
 import { getState, esTD, addModulo, updateModulo, removeModulo,
-  addAspirante, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
+  addAspirante, addAspirantesBulk, updateAspirante, removeAspirante, addSeguimiento, removeSeguimiento,
   addAnuncio, updateAnuncio, removeAnuncio } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate, fmtDateTime } from '../ui.js';
 import { icon } from '../icons.js';
@@ -38,7 +38,7 @@ export function viewAcademia() {
       el('h2', {}, 'Programa Académico — Training Division'),
       gestor ? el('div', { class: 'row gap' }, [
         el('button', { class: 'btn ghost ic', onClick: () => openAnuncio() }, [icon('plus', 15), 'Anuncio']),
-        el('button', { class: 'btn navy ic', onClick: () => openAspirante() }, [icon('plus', 15), 'Aspirante']),
+        el('button', { class: 'btn navy ic', onClick: () => openAspirante() }, [icon('plus', 15), 'Lista de aspirantes']),
         el('button', { class: 'btn gold ic', onClick: () => openModulo() }, [icon('plus', 15), 'Módulo / día']),
       ]) : el('span', { class: 'muted small' }, 'Vista de solo lectura'),
     ]),
@@ -332,29 +332,58 @@ function openAnuncio(an = null) {
   modal(edit ? 'Editar anuncio' : 'Nuevo anuncio', body, { wide: true });
 }
 
-// ----------------------------- Alta de aspirante ---------------------------
+// -------------------- Roster de aspirantes (lista permitida) ----------------
+// Solo quienes estén en esta lista podrán registrarse en el aula.
 function openAspirante() {
-  const f = {};
-  f.nombre = el('input', { placeholder: 'Nombre y apellido del personaje' });
-  f.discord = el('input', { placeholder: 'Usuario de Discord' });
+  const s = getState();
+  const yaNombres = new Set(s.tdAspirantes.map((a) => clave(a.nombre)));
+  const dusmt = s.personal
+    .filter((p) => (p.rango || '').toUpperCase() === 'DUSMT' || p.estado === 'Trainee')
+    .filter((p) => !yaNombres.has(clave(p.nombre)))
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+
+  const seleccion = new Set();
+  const lista = dusmt.length
+    ? el('div', { class: 'chk-grid' }, dusmt.map((p) => {
+        const cb = el('input', { type: 'checkbox' });
+        cb.addEventListener('change', () => { cb.checked ? seleccion.add(p.nombre) : seleccion.delete(p.nombre); });
+        return el('label', { class: 'chk' }, [cb, el('span', {}, `${p.nombre} · placa ${p.placa ?? '—'}`)]);
+      }))
+    : el('p', { class: 'muted small' }, 'No hay mariscales con rango DUSMT libres para agregar. Créalos en Personal o usa la lista manual.');
+
+  const manual = el('textarea', { rows: '4', placeholder: 'Un Nombre_Apellido por línea…' });
+
   async function save() {
-    if (f.nombre.value.trim().length < 3) return toast('Nombre completo', 'err');
-    if (f.discord.value.trim().length < 2) return toast('Discord válido', 'err');
-    try {
-      await addAspirante({ nombre: f.nombre.value.trim(), discord: f.discord.value.trim() });
-      toast('Aspirante agregado'); closeModal(); render();
-    } catch (e) { toast(/duplicate|unique/i.test(e.message) ? 'Ese Discord ya está registrado.' : e.message, 'err'); }
+    const manualNombres = manual.value.split('\n').map((x) => x.trim()).filter((x) => x.length >= 3);
+    const todos = [...seleccion, ...manualNombres];
+    // Dedupe contra lo ya existente y entre sí.
+    const vistos = new Set(yaNombres);
+    const nuevos = [];
+    for (const n of todos) { const k = clave(n); if (!vistos.has(k)) { vistos.add(k); nuevos.push(n); } }
+    if (!nuevos.length) return toast('No hay nombres nuevos para agregar', 'err');
+    try { await addAspirantesBulk(nuevos); toast(`${nuevos.length} aspirante(s) en la lista`); closeModal(); render(); }
+    catch (e) { toast(e.message, 'err'); }
   }
-  const body = el('div', { class: 'form-grid' }, [
-    el('label', { class: 'field full' }, [el('span', {}, 'Nombre'), f.nombre]),
-    el('label', { class: 'field full' }, [el('span', {}, 'Discord'), f.discord]),
-    el('div', { class: 'row gap end full' }, [
+
+  const body = el('div', {}, [
+    el('p', { class: 'muted small' }, 'Define quién puede registrarse en el aula. Solo los nombres de esta lista podrán crear su acceso; el resto será rechazado.'),
+    el('div', { class: 'card sub' }, [
+      el('h4', {}, [icon('personal', 14), ' Tomar de los DUSMT']),
+      lista,
+    ]),
+    el('div', { class: 'card sub' }, [
+      el('h4', {}, [icon('plus', 14), ' Agregar manualmente']),
+      el('label', { class: 'field full' }, [el('span', {}, 'Nombres (uno por línea)'), manual]),
+    ]),
+    el('div', { class: 'row gap end' }, [
       el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
-      el('button', { class: 'btn gold', onClick: save }, 'Agregar'),
+      el('button', { class: 'btn gold', onClick: save }, 'Agregar a la lista'),
     ]),
   ]);
-  modal('Nuevo aspirante', body, { wide: true });
+  modal('Aspirantes permitidos', body, { wide: true });
 }
+
+const clave = (s) => (s || '').toString().trim().toLowerCase().replace(/[_\s]+/g, ' ');
 
 const kpi = (label, value, sub, cls, ic) => el('div', { class: `card kpi ${cls}` }, [
   el('span', { class: 'kpi-ico' }, [icon(ic, 26)]),
