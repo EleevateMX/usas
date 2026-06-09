@@ -1,6 +1,7 @@
 import { getState, esAdmin, updatePerfil, removePerfil, loadAll } from '../store.js';
 import { crearMiembro, cambiarPassword } from '../auth.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge } from '../ui.js';
+import { icon } from '../icons.js';
 import { render } from '../router.js';
 
 const ROLES = ['Supervisory', 'Directive', 'Executive', 'Director'];
@@ -17,7 +18,7 @@ export function viewMiembros() {
     ]),
 
     el('div', { class: 'card info-strip' }, [
-      el('span', {}, '🔑'),
+      el('span', { class: 'strip-ico' }, [icon('miembros', 22)]),
       el('p', { class: 'muted small' }, 'Cadena de mando: Supervisory · Directive · Executive · Director. Solo Executive/Director pueden crear miembros y cambiar roles. La edición de la Normativa requiere Directive o superior.'),
     ]),
 
@@ -33,7 +34,7 @@ export function viewMiembros() {
           el('td', { class: 'right' }, admin && p.id !== yo?.id
             ? el('button', { class: 'icon-btn', title: 'Eliminar perfil', onClick: () =>
                 confirmDialog(`¿Eliminar el perfil de ${p.nombre || p.email}? (No borra su cuenta de acceso)`,
-                  async () => { try { await removePerfil(p.id); toast('Perfil eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑')
+                  async () => { try { await removePerfil(p.id); toast('Perfil eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)])
             : null),
         ]))),
       ]),

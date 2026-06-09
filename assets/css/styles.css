@@ -277,3 +277,77 @@ textarea { resize: vertical; }
 .chk { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text); cursor: pointer; }
 .chk input { width: auto; }
 @media (max-width: 760px) { .chk-grid { grid-template-columns: 1fr 1fr; } }
+
+/* =========================================================================
+   Iconografía SVG + acento GTAHUB
+   ========================================================================= */
+:root { --accent: #19b8c4; --accent-soft: #5fd6e0; }
+.ico { display: inline-flex; align-items: center; justify-content: center; }
+.ico svg { display: block; }
+.icon-btn { display: inline-grid; place-items: center; }
+.nav-item .ico { width: 22px; color: inherit; }
+.h-ico { display: inline-flex; align-items: center; gap: 8px; }
+.btn.ic { display: inline-flex; align-items: center; gap: 8px; }
+.strip-ico { color: var(--gold); display: inline-flex; }
+.user-chip .ico { color: var(--gold-soft); }
+
+/* Marca lateral con insignia SVG */
+.badge-host { display: inline-flex; filter: drop-shadow(0 3px 6px rgba(0,0,0,.4)); }
+.marshal-badge svg { display: block; }
+
+/* =========================================================================
+   Login dinámico
+   ========================================================================= */
+.gate { position: relative; min-height: 100vh; display: grid; place-items: center; padding: 24px; overflow: hidden; }
+.auth-wrap { display: contents; }
+
+.aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.aurora span { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; }
+.aurora .a1 { width: 520px; height: 520px; left: -120px; top: -140px;
+  background: radial-gradient(circle, rgba(217,181,61,.55), transparent 70%); animation: drift1 18s ease-in-out infinite; }
+.aurora .a2 { width: 600px; height: 600px; right: -160px; bottom: -180px;
+  background: radial-gradient(circle, rgba(45,80,150,.6), transparent 70%); animation: drift2 22s ease-in-out infinite; }
+.aurora .a3 { width: 420px; height: 420px; left: 40%; top: 30%;
+  background: radial-gradient(circle, rgba(25,184,196,.35), transparent 70%); animation: drift3 26s ease-in-out infinite; }
+@keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(80px,60px) scale(1.15); } }
+@keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-70px,-50px) scale(1.1); } }
+@keyframes drift3 { 0%,100% { transform: translate(-50%,-30%) scale(1); } 50% { transform: translate(-35%,-45%) scale(1.2); } }
+
+.auth-card {
+  position: relative; z-index: 1; width: 430px; max-width: 100%;
+  background: linear-gradient(180deg, rgba(15,22,38,.92), rgba(11,17,32,.92));
+  border: 1px solid rgba(217,181,61,.22); border-radius: 18px;
+  padding: 34px 30px 24px; backdrop-filter: blur(14px);
+  box-shadow: 0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
+  animation: cardIn .5s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.auth-brand { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.auth-brand .marshal-badge { animation: float 5s ease-in-out infinite; filter: drop-shadow(0 6px 16px rgba(217,181,61,.28)); }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.brand-title.xl { font-size: 20px; letter-spacing: 2px; margin-top: 8px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 14px; color: var(--muted); }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+.auth-divider span { font-family: 'Oswald'; font-size: 11px; letter-spacing: 2px; color: var(--gold-soft); }
+.auth-form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-lbl { font-size: 12px; color: var(--muted); font-weight: 500; }
+.auth-input { display: flex; align-items: center; gap: 10px; background: var(--navy-850);
+  border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; transition: .15s; }
+.auth-input .ico { color: var(--muted); }
+.auth-input input { border: none; background: transparent; padding: 11px 0; width: 100%; }
+.auth-input input:focus { outline: none; }
+.auth-input:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(217,181,61,.12); }
+.auth-input:focus-within .ico { color: var(--gold-soft); }
+.auth-card .btn.gold.full { margin-top: 4px; padding: 12px; font-size: 14px; letter-spacing: .3px; }
+.auth-foot { text-align: center; margin-top: 18px; font-size: 10.5px; letter-spacing: 1px;
+  color: var(--muted); text-transform: uppercase; }
+
+/* Foco con acento en inputs generales */
+input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px rgba(25,184,196,.12); }
+
+/* KPI con icono de marca de agua */
+.kpi-ico { position: absolute; right: 14px; top: 14px; color: var(--muted); opacity: .28; }
+.kpi.gold .kpi-ico { color: var(--gold); }
+.kpi.green .kpi-ico { color: var(--green); }
+.kpi.red .kpi-ico { color: var(--red); }

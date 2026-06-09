@@ -1,5 +1,8 @@
 import { getState, balance } from '../store.js';
 import { el, fmtMoney, fmtDate, badge } from '../ui.js';
+import { icon } from '../icons.js';
+
+const h3 = (ic, text) => el('h3', { class: 'h-ico' }, [icon(ic, 17), text]);
 
 export function viewDashboard() {
   const s = getState();
@@ -24,8 +27,9 @@ export function viewDashboard() {
     .sort((a, b) => b.dias - a.dias);
   const sinRegistro = s.personal.filter((p) => p.estado === 'Activo' && !p.ultimaActividad).length;
 
-  const kpi = (label, value, sub, cls = '') =>
+  const kpi = (label, value, sub, cls = '', ic = 'star') =>
     el('div', { class: `card kpi ${cls}` }, [
+      el('span', { class: 'kpi-ico' }, [icon(ic, 26)]),
       el('div', { class: 'kpi-val' }, String(value)),
       el('div', { class: 'kpi-label' }, label),
       sub ? el('div', { class: 'kpi-sub' }, sub) : null,
@@ -33,15 +37,15 @@ export function viewDashboard() {
 
   return el('div', { class: 'view' }, [
     el('div', { class: 'grid kpis' }, [
-      kpi('Personal activo', activos, `${inactivos} inactivos / LOA`, 'gold'),
-      kpi('Tesorería', fmtMoney(balance()), `${s.finanzas.length} movimientos`, 'green'),
-      kpi('Casos OPR abiertos', casosAbiertos, `${s.casos.length} en total`, 'red'),
-      kpi('Strikes en plantilla', strikesTotal, `${s.normativa.length} artículos vigentes`),
+      kpi('Personal activo', activos, `${inactivos} inactivos / LOA`, 'gold', 'personal'),
+      kpi('Tesorería', fmtMoney(balance()), `${s.finanzas.length} movimientos`, 'green', 'finanzas'),
+      kpi('Casos OPR abiertos', casosAbiertos, `${s.casos.length} en total`, 'red', 'asuntos'),
+      kpi('Strikes en plantilla', strikesTotal, `${s.normativa.length} artículos vigentes`, '', 'normativa'),
     ]),
 
     el('div', { class: 'grid two' }, [
       el('div', { class: 'card' }, [
-        el('div', { class: 'card-head' }, [el('h3', {}, '⚠ Banderas de actividad'),
+        el('div', { class: 'card-head' }, [h3('alert', 'Banderas de actividad'),
           el('span', { class: 'muted small' }, '< 40 h/mes')]),
         banderas.length
           ? el('table', { class: 'tbl' }, [
@@ -57,7 +61,7 @@ export function viewDashboard() {
       ]),
 
       el('div', { class: 'card' }, [
-        el('div', { class: 'card-head' }, [el('h3', {}, '🛡 Últimos casos OPR'), null]),
+        el('div', { class: 'card-head' }, [h3('asuntos', 'Últimos casos OPR'), null]),
         recientes.length
           ? el('div', { class: 'list' }, recientes.map((c) =>
               el('a', { class: 'list-item', href: '#/asuntos' }, [
@@ -69,7 +73,7 @@ export function viewDashboard() {
     ]),
 
     el('div', { class: 'card' }, [
-      el('div', { class: 'card-head' }, [el('h3', {}, '⏱ Inactividad — Art. 13'),
+      el('div', { class: 'card-head' }, [h3('clock', 'Inactividad — Art. 13'),
         el('span', { class: 'muted small' }, '> 7 días sin actividad')]),
       inactivos7.length
         ? el('div', { class: 'list' }, inactivos7.slice(0, 8).map(({ p, dias }) =>

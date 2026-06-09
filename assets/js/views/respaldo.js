@@ -1,5 +1,6 @@
 import { getState, exportJSON } from '../store.js';
 import { el, toast } from '../ui.js';
+import { icon } from '../icons.js';
 
 export function viewRespaldo() {
   const s = getState();
@@ -8,16 +9,16 @@ export function viewRespaldo() {
     el('p', { class: 'muted' }, 'Los datos se guardan en la nube (Supabase) y se sincronizan entre todo el liderazgo. Aquí puedes exportar una copia de respaldo en JSON.'),
 
     el('div', { class: 'card' }, [
-      el('h3', {}, '📤 Exportar copia'),
+      el('h3', { class: 'h-ico' }, [icon('download', 17), 'Exportar copia']),
       el('p', { class: 'muted small' }, `Personal: ${s.personal.length} · Movimientos: ${s.finanzas.length} · Casos: ${s.casos.length} · Sanciones: ${s.sanciones.length} · Artículos: ${s.normativa.length}`),
       el('div', { class: 'row gap' }, [
-        el('button', { class: 'btn gold', onClick: doExport }, 'Descargar respaldo (.json)'),
-        el('button', { class: 'btn ghost', onClick: doCopy }, 'Copiar al portapapeles'),
+        el('button', { class: 'btn gold ic', onClick: doExport }, [icon('download', 15), 'Descargar respaldo (.json)']),
+        el('button', { class: 'btn ghost ic', onClick: doCopy }, [icon('copy', 15), 'Copiar al portapapeles']),
       ]),
     ]),
 
     el('div', { class: 'card' }, [
-      el('h3', {}, '☁ Sincronización en la nube'),
+      el('h3', { class: 'h-ico' }, [icon('cloud', 17), 'Sincronización en la nube']),
       el('p', { class: 'muted small' }, 'Todo cambio se guarda al instante en Supabase. Cualquier miembro del liderazgo con acceso verá los datos actualizados al recargar. El control de permisos se administra desde “Miembros”.'),
     ]),
   ]);

@@ -1,5 +1,6 @@
 import { getState, addCaso, updateCaso, removeCaso } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
+import { icon } from '../icons.js';
 import { matchInfracciones, rangoSancion } from '../matcher.js';
 import { render } from '../router.js';
 
@@ -16,7 +17,7 @@ export function viewAsuntos() {
     ]),
 
     el('div', { class: 'card info-strip' }, [
-      el('span', {}, '🛡'),
+      el('span', { class: 'strip-ico' }, [icon('asuntos', 22)]),
       el('p', { class: 'muted small' }, 'Describe la situación reportada y el sistema delimitará automáticamente qué artículos de la normativa podrían vulnerarse, con su rango de sanción. La sugerencia es orientativa: la resolución final corresponde al explanatory (Arts. 79–91).'),
     ]),
 
@@ -44,10 +45,10 @@ function casoCard(c, s) {
       : el('div', { class: 'muted small' }, 'Sin artículos imputados aún.'),
     c.sancionAplicada ? el('div', { class: 'sanc' }, ['Sanción: ', el('strong', {}, c.sancionAplicada)]) : null,
     el('div', { class: 'row gap end' }, [
-      el('button', { class: 'btn ghost small', onClick: () => exportarExplanatory(c, s) }, '📄 Explanatory'),
+      el('button', { class: 'btn ghost small ic', onClick: () => exportarExplanatory(c, s) }, [icon('file', 15), 'Explanatory']),
       el('button', { class: 'btn ghost small', onClick: () => openCaso(c) }, 'Abrir / Analizar'),
       el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-        confirmDialog(`¿Eliminar el caso ${c.folio}?`, async () => { try { await removeCaso(c.id); toast('Caso eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
+        confirmDialog(`¿Eliminar el caso ${c.folio}?`, async () => { try { await removeCaso(c.id); toast('Caso eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)]),
     ]),
   ]);
 }
@@ -119,7 +120,7 @@ function openCaso(c = null) {
     ]),
     el('label', { class: 'field full' }, [el('span', {}, 'Descripción de la situación'), desc]),
     el('div', { class: 'row gap' }, [
-      el('button', { class: 'btn navy', onClick: analizar }, '🔎 Analizar situación'),
+      el('button', { class: 'btn navy ic', onClick: analizar }, [icon('scan', 16), 'Analizar situación']),
       el('span', { class: 'muted small' }, 'Marca las infracciones que correspondan para imputarlas al caso.'),
     ]),
     sugeridosHost,

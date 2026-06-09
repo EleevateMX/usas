@@ -1,6 +1,7 @@
 // ===========================================================================
 //  USMS Control — Utilidades de interfaz (sin dependencias)
 // ===========================================================================
+import { icon } from './icons.js';
 
 export function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -55,7 +56,7 @@ export function modal(title, bodyNode, { wide = false } = {}) {
   const box = el('div', { class: `modal ${wide ? 'modal-wide' : ''}` }, [
     el('div', { class: 'modal-head' }, [
       el('h3', {}, title),
-      el('button', { class: 'icon-btn', onClick: closeModal, title: 'Cerrar' }, '✕'),
+      el('button', { class: 'icon-btn', onClick: closeModal, title: 'Cerrar' }, [icon('close', 18)]),
     ]),
     el('div', { class: 'modal-body' }, [bodyNode]),
   ]);

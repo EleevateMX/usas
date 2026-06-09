@@ -3,6 +3,7 @@
 // ===========================================================================
 import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
+import { marshalBadge, icon } from './icons.js';
 
 export async function getSession() {
   const { data } = await supabase.auth.getSession();
@@ -42,33 +43,40 @@ export async function crearMiembro({ email, password, nombre, rol }) {
 // --------------------------- Pantalla de acceso ----------------------------
 export async function viewLogin(onDone) {
   const iniciado = await sistemaIniciado();
-  const host = el('div', { class: 'auth-wrap' });
-
-  const card = el('div', { class: 'auth-card' }, [
-    el('div', { class: 'auth-brand' }, [
-      el('div', { class: 'badge-star big' }, '★'),
-      el('div', {}, [
-        el('div', { class: 'brand-title' }, 'U.S. MARSHALS'),
-        el('div', { class: 'brand-sub' }, 'Service · Centro de Mando'),
-      ]),
-    ]),
-    el('p', { class: 'muted small center' }, iniciado
-      ? 'Acceso restringido al liderazgo. Inicia sesión con tu cuenta.'
-      : 'Primer acceso: crea la cuenta del Director de la agencia.'),
-  ]);
 
   const email = el('input', { type: 'email', placeholder: 'correo@ejemplo.com', autocomplete: 'username' });
   const nombre = el('input', { type: 'text', placeholder: 'Nombre / identificación' });
   const pass = el('input', { type: 'password', placeholder: 'Contraseña', autocomplete: 'current-password' });
   const btn = el('button', { class: 'btn gold full', onClick: submit }, iniciado ? 'Entrar' : 'Crear Director');
 
-  const form = el('div', { class: 'auth-form' }, [
-    el('label', { class: 'field' }, [el('span', {}, 'Correo'), email]),
-    iniciado ? null : el('label', { class: 'field' }, [el('span', {}, 'Nombre'), nombre]),
-    el('label', { class: 'field' }, [el('span', {}, 'Contraseña'), pass]),
-    btn,
+  const field = (label, ic, input) => el('label', { class: 'auth-field' }, [
+    el('span', { class: 'auth-lbl' }, label),
+    el('div', { class: 'auth-input' }, [icon(ic, 16), input]),
   ]);
-  card.append(form);
+
+  const card = el('div', { class: 'auth-card' }, [
+    el('div', { class: 'auth-brand' }, [
+      marshalBadge(82),
+      el('div', { class: 'brand-title xl' }, 'U.S. MARSHALS SERVICE'),
+      el('div', { class: 'brand-sub' }, 'San Andreas · Centro de Mando'),
+    ]),
+    el('div', { class: 'auth-divider' }, [el('span', {}, iniciado ? 'ACCESO AUTORIZADO' : 'PRIMER ACCESO')]),
+    el('p', { class: 'muted small center' }, iniciado
+      ? 'Acceso restringido al liderazgo. Inicia sesión con tu cuenta.'
+      : 'Crea la cuenta del Director de la agencia para inicializar el sistema.'),
+    el('div', { class: 'auth-form' }, [
+      field('Correo', 'user', email),
+      iniciado ? null : field('Nombre', 'personal', nombre),
+      field('Contraseña', 'shield', pass),
+      btn,
+    ]),
+    el('div', { class: 'auth-foot' }, 'GTAHUB Roleplay · Uso interno y confidencial'),
+  ]);
+
+  const host = el('div', { class: 'auth-wrap' }, [
+    el('div', { class: 'aurora' }, [el('span', { class: 'a1' }), el('span', { class: 'a2' }), el('span', { class: 'a3' })]),
+    card,
+  ]);
   [email, nombre, pass].forEach((i) => i && i.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); }));
 
   async function submit() {
@@ -89,6 +97,5 @@ export async function viewLogin(onDone) {
     }
   }
 
-  host.append(card);
   return host;
 }

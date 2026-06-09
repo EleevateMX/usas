@@ -10,13 +10,13 @@ import { viewMiembros } from './views/miembros.js';
 import { viewRespaldo } from './views/respaldo.js';
 
 export const ROUTES = {
-  '/dashboard': { label: 'Centro de Mando', icon: '★', view: viewDashboard },
-  '/personal':  { label: 'Personal',        icon: '👮', view: viewPersonal },
-  '/finanzas':  { label: 'Tesorería',       icon: '💵', view: viewFinanzas },
-  '/asuntos':   { label: 'Asuntos Internos',icon: '🛡', view: viewAsuntos },
-  '/normativa': { label: 'Normativa',        icon: '📖', view: viewNormativa },
-  '/miembros':  { label: 'Miembros',         icon: '🔑', view: viewMiembros, soloAdmin: true },
-  '/respaldo':  { label: 'Respaldo',         icon: '💾', view: viewRespaldo },
+  '/dashboard': { label: 'Centro de Mando', icon: 'dashboard', view: viewDashboard },
+  '/personal':  { label: 'Personal',        icon: 'personal',  view: viewPersonal },
+  '/finanzas':  { label: 'Tesorería',       icon: 'finanzas',  view: viewFinanzas },
+  '/asuntos':   { label: 'Asuntos Internos',icon: 'asuntos',   view: viewAsuntos },
+  '/normativa': { label: 'Normativa',        icon: 'normativa', view: viewNormativa },
+  '/miembros':  { label: 'Miembros',         icon: 'miembros',  view: viewMiembros, soloAdmin: true },
+  '/respaldo':  { label: 'Respaldo',         icon: 'respaldo',  view: viewRespaldo },
 };
 
 export function currentPath() {

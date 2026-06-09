@@ -1,5 +1,6 @@
 import { getState, addMovimiento, updateMovimiento, removeMovimiento, balance } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtMoney, fmtDate } from '../ui.js';
+import { icon } from '../icons.js';
 import { render } from '../router.js';
 
 const CATEGORIAS = ['General', 'Salarios', 'Unidades', 'Armamento', 'Multas', 'Operativos', 'Capacitaciones', 'Donaciones', 'Mantenimiento'];
@@ -45,9 +46,9 @@ export function viewFinanzas() {
                 el('td', { class: 'right ' + (m.tipo === 'ingreso' ? 'green-txt' : 'danger-txt') },
                   (m.tipo === 'ingreso' ? '+' : '−') + fmtMoney(m.monto)),
                 el('td', { class: 'right nowrap' }, [
-                  el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openForm(m) }, '✎'),
+                  el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openForm(m) }, [icon('edit', 16)]),
                   el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-                    confirmDialog('¿Eliminar este movimiento?', async () => { try { await removeMovimiento(m.id); toast('Movimiento eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
+                    confirmDialog('¿Eliminar este movimiento?', async () => { try { await removeMovimiento(m.id); toast('Movimiento eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)]),
                 ]),
               ]))),
             ])

@@ -1,5 +1,6 @@
 import { getState, updateArticulo, addArticulo, removeArticulo, esDirectiva } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge } from '../ui.js';
+import { icon } from '../icons.js';
 import { rangoSancion } from '../matcher.js';
 import { SEVERIDAD } from '../normativa-seed.js';
 import { render } from '../router.js';
@@ -26,9 +27,9 @@ function artCard(a) {
     el('div', { class: 'row between' }, [
       el('div', { class: 'chips' }, a.tags.slice(0, 6).map((t) => el('span', { class: 'chip' }, t))),
       puedeEditar ? el('div', { class: 'nowrap' }, [
-        el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openArt(a) }, '✎'),
+        el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openArt(a) }, [icon('edit', 16)]),
         el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
-          confirmDialog(`¿Eliminar ${a.titulo}?`, async () => { try { await removeArticulo(a.id); toast('Artículo eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
+          confirmDialog(`¿Eliminar ${a.titulo}?`, async () => { try { await removeArticulo(a.id); toast('Artículo eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)]),
       ]) : null,
     ]),
   ]);

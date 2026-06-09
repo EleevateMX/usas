@@ -5,9 +5,15 @@ import { ROUTES, initRouter, render } from './router.js';
 import { getState, setSession, loadPerfil, loadAll, esAdmin, esDirectiva } from './store.js';
 import { getSession, onAuthChange, signOut, viewLogin } from './auth.js';
 import { el, toast } from './ui.js';
+import { icon, marshalBadge } from './icons.js';
 import { abrirCuenta } from './views/miembros.js';
 
 const elById = (id) => document.getElementById(id);
+
+function buildBrand() {
+  const host = elById('badge-host');
+  if (host && !host.firstChild) host.append(marshalBadge(40));
+}
 
 function buildNav() {
   const nav = elById('nav');
@@ -15,7 +21,7 @@ function buildNav() {
   for (const [path, r] of Object.entries(ROUTES)) {
     if (r.soloAdmin && !esAdmin()) continue;
     const a = el('a', { class: 'nav-item', href: '#' + path, dataset: { path } },
-      [el('span', { class: 'nav-ico' }, r.icon), el('span', {}, r.label)]);
+      [icon(r.icon, 18), el('span', {}, r.label)]);
     nav.append(a);
   }
 }
@@ -27,12 +33,13 @@ function buildTopbar() {
   if (!p) return;
   host.append(
     el('button', { class: 'user-chip', onClick: abrirCuenta, title: 'Mi cuenta' }, [
+      icon('user', 15),
       el('span', { class: 'user-name' }, p.nombre || p.email),
       el('span', { class: 'badge rango' }, p.rol),
     ]),
     el('button', { class: 'icon-btn', title: 'Cerrar sesión', onClick: async () => {
       await signOut(); location.reload();
-    } }, '⏻'),
+    } }, [icon('logout', 18)]),
   );
 }
 
@@ -45,6 +52,7 @@ async function enterApp() {
   } catch (e) {
     toast('Error al cargar datos: ' + e.message, 'err');
   }
+  buildBrand();
   buildNav();
   buildTopbar();
   initRouter();
@@ -53,6 +61,7 @@ async function enterApp() {
 
   const toggle = elById('menu-toggle');
   const sidebar = elById('sidebar');
+  if (toggle && !toggle.firstChild) toggle.append(icon('menu', 20));
   toggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
   elById('nav')?.addEventListener('click', () => sidebar.classList.remove('open'));
 }

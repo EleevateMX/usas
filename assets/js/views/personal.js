@@ -1,6 +1,7 @@
 import { getState, addPersona, updatePersona, removePersona,
   addSancion, removeSancion, setSancionVencida } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
+import { icon } from '../icons.js';
 import { render } from '../router.js';
 
 const RANGOS = [
@@ -69,12 +70,12 @@ function tableNode(lista) {
       el('td', { class: 'right' }, fmtNum(p.advertencias)),
       el('td', { class: 'right ' + ((+p.strikes || 0) >= 2 ? 'danger-txt' : '') }, fmtNum(p.strikes)),
       el('td', { class: 'right nowrap' }, [
-        el('button', { class: 'icon-btn', title: 'Historial disciplinario', onClick: () => openHistorial(p) }, '🛡'),
-        el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openForm(p) }, '✎'),
+        el('button', { class: 'icon-btn', title: 'Historial disciplinario', onClick: () => openHistorial(p) }, [icon('history', 16)]),
+        el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openForm(p) }, [icon('edit', 16)]),
         el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
           confirmDialog(`¿Eliminar a ${p.nombre || 'este mariscal'}?`, async () => {
             try { await removePersona(p.id); toast('Mariscal eliminado'); render(); } catch (e) { toast(e.message, 'err'); }
-          }) }, '🗑'),
+          }) }, [icon('trash', 16)]),
       ]),
     ]))),
   ]);
@@ -209,10 +210,10 @@ function sancRow(x, s) {
     ]),
     el('div', { class: 'nowrap' }, [
       el('button', { class: 'icon-btn', title: x.vencida ? 'Reactivar' : 'Marcar vencida/perdonada', onClick: async () => {
-        try { await setSancionVencida(x.id, !x.vencida); toast('Actualizado'); closeModal(); render(); } catch (e) { toast(e.message, 'err'); } } }, x.vencida ? '↺' : '✓'),
+        try { await setSancionVencida(x.id, !x.vencida); toast('Actualizado'); closeModal(); render(); } catch (e) { toast(e.message, 'err'); } } }, [icon(x.vencida ? 'undo' : 'check', 16)]),
       el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
         confirmDialog('¿Eliminar esta sanción del historial?', async () => {
-          try { await removeSancion(x.id); toast('Eliminada'); closeModal(); render(); } catch (e) { toast(e.message, 'err'); } }) }, '🗑'),
+          try { await removeSancion(x.id); toast('Eliminada'); closeModal(); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)]),
     ]),
   ]);
 }
