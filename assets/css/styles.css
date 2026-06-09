@@ -562,3 +562,23 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* Overlay del menú móvil */
+.backdrop { position: fixed; inset: 0; background: rgba(4,7,14,.62); backdrop-filter: blur(2px);
+  z-index: 40; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.backdrop.show { opacity: 1; pointer-events: auto; }
+@media (min-width: 761px) { .backdrop { display: none; } }
+
+/* Botón instalar PWA */
+.install-slot { display: flex; align-items: center; }
+.install-steps { margin: 8px 0 14px; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: #cdd6e6; }
+.install-steps li { line-height: 1.4; }
+@media (max-width: 520px) { .install-lbl { display: none; } }
+
+/* Dashboard — distribución (barras) */
+.dist { display: flex; flex-direction: column; gap: 9px; }
+.dist-row { display: grid; grid-template-columns: 92px 1fr 34px; align-items: center; gap: 10px; }
+.dist-lbl { font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dist-track { height: 8px; border-radius: 5px; background: var(--navy-700); overflow: hidden; }
+.dist-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--gold), var(--gold-soft)); }
+.dist-n { font-family: 'Oswald'; font-size: 13px; text-align: right; color: var(--muted); }

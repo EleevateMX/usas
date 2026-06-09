@@ -27,6 +27,20 @@ export function viewDashboard() {
     .sort((a, b) => b.dias - a.dias);
   const sinRegistro = s.personal.filter((p) => p.estado === 'Activo' && !p.ultimaActividad).length;
 
+  // Distribución de la plantilla por rango (ordenado) y por división.
+  const RANK_ORDER = ['DUSMT', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV', 'SDUSM I', 'SDUSM II', 'CDUSM', 'U.S. Marshal'];
+  const porRango = RANK_ORDER.map((r) => [r, s.personal.filter((p) => p.rango === r).length]).filter(([, n]) => n > 0);
+  const maxRango = Math.max(1, ...porRango.map(([, n]) => n));
+  const divCount = {};
+  s.personal.forEach((p) => (p.divisiones || []).forEach((d) => { divCount[d] = (divCount[d] || 0) + 1; }));
+  const porDiv = Object.entries(divCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxDiv = Math.max(1, ...porDiv.map(([, n]) => n));
+  const distRow = (label, n, max) => el('div', { class: 'dist-row' }, [
+    el('div', { class: 'dist-lbl' }, label),
+    el('div', { class: 'dist-track' }, [el('div', { class: 'dist-fill', style: `width:${Math.round((n / max) * 100)}%` })]),
+    el('div', { class: 'dist-n' }, String(n)),
+  ]);
+
   const kpi = (label, value, sub, cls = '', ic = 'star') =>
     el('div', { class: `card kpi ${cls}` }, [
       el('span', { class: 'kpi-ico' }, [icon(ic, 26)]),
@@ -101,5 +115,20 @@ export function viewDashboard() {
         : null,
     ]),
 
+    el('div', { class: 'grid two' }, [
+      el('div', { class: 'card' }, [
+        el('div', { class: 'card-head' }, [h3('award', 'Plantilla por rango'),
+          el('span', { class: 'muted small' }, `${s.personal.length} en total`)]),
+        porRango.length
+          ? el('div', { class: 'dist' }, porRango.map(([r, n]) => distRow(r, n, maxRango)))
+          : el('p', { class: 'muted' }, 'Sin rangos asignados.'),
+      ]),
+      el('div', { class: 'card' }, [
+        el('div', { class: 'card-head' }, [h3('layers', 'Por división'), null]),
+        porDiv.length
+          ? el('div', { class: 'dist' }, porDiv.map(([d, n]) => distRow(d, n, maxDiv)))
+          : el('p', { class: 'muted' }, 'Sin divisiones registradas en el personal.'),
+      ]),
+    ]),
   ]);
 }

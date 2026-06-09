@@ -4,7 +4,7 @@
 import { ROUTES, initRouter, render } from './router.js';
 import { getState, setSession, loadPerfil, loadAll, esAdmin, esDirectiva } from './store.js';
 import { getSession, onAuthChange, signOut, viewLogin } from './auth.js';
-import { el, toast } from './ui.js';
+import { el, toast, modal, closeModal } from './ui.js';
 import { icon, sealImg } from './icons.js';
 import { abrirCuenta } from './views/miembros.js';
 
@@ -67,9 +67,51 @@ async function enterApp() {
 
   const toggle = elById('menu-toggle');
   const sidebar = elById('sidebar');
+  const backdrop = elById('backdrop');
+  const setMenu = (open) => { sidebar.classList.toggle('open', open); backdrop?.classList.toggle('show', open); };
   if (toggle && !toggle.firstChild) toggle.append(icon('menu', 20));
-  toggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
-  elById('nav')?.addEventListener('click', () => sidebar.classList.remove('open'));
+  toggle?.addEventListener('click', () => setMenu(!sidebar.classList.contains('open')));
+  backdrop?.addEventListener('click', () => setMenu(false));
+  elById('nav')?.addEventListener('click', () => setMenu(false));
+
+  buildInstall();
+}
+
+// --------------------------- Instalación PWA -------------------------------
+let deferredPrompt = null;
+const esStandalone = () => matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; buildInstall(); });
+window.addEventListener('appinstalled', () => { deferredPrompt = null; buildInstall(); toast('App instalada'); });
+
+function buildInstall() {
+  const slot = elById('install-slot');
+  if (!slot) return;
+  slot.innerHTML = '';
+  if (esStandalone()) return;                 // ya instalada
+  if (!deferredPrompt && !esIOS()) return;     // navegador sin soporte de instalación
+  slot.append(el('button', { class: 'btn ghost small ic', title: 'Instalar la app', onClick: instalar },
+    [icon('download', 14), el('span', { class: 'install-lbl' }, 'Instalar app')]));
+}
+
+async function instalar() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null; buildInstall();
+    return;
+  }
+  // iOS: no hay prompt nativo, mostramos instrucciones.
+  modal('Instalar en iPhone / iPad', el('div', {}, [
+    el('p', { class: 'muted small' }, 'En Safari, instala el Centro de Mando como app:'),
+    el('ol', { class: 'install-steps' }, [
+      el('li', {}, 'Toca el botón Compartir (el cuadro con la flecha hacia arriba).'),
+      el('li', {}, 'Elige “Añadir a pantalla de inicio”.'),
+      el('li', {}, 'Confirma con “Añadir”. Quedará con el sello del USMS.'),
+    ]),
+    el('div', { class: 'row gap end' }, [el('button', { class: 'btn gold', onClick: closeModal }, 'Entendido')]),
+  ]));
 }
 
 async function showGate() {
