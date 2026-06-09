@@ -17,6 +17,8 @@ let state = {
   normativa: [],
   sanciones: [],
   perfiles: [],
+  examenPreguntas: [],
+  examenIntentos: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -62,6 +64,15 @@ const mapSancion = (r) => ({
 const mapPerfil = (r) => ({
   id: r.id, email: r.email, nombre: r.nombre, rol: r.rol, activo: r.activo,
 });
+const mapPregunta = (r) => ({
+  id: r.id, categoria: r.categoria, dificultad: r.dificultad, enunciado: r.enunciado,
+  opciones: r.opciones || [], correcta: r.correcta, activa: r.activa,
+});
+const mapIntento = (r) => ({
+  id: r.id, nombre: r.nombre, discord: r.discord, fecha: r.created_at,
+  puntaje: Number(r.puntaje) || 0, total: r.total || 0, aprobado: r.aprobado,
+  estado: r.estado, duracionSeg: r.duracion_seg,
+});
 
 // Recalcula advertencias/strikes vigentes de cada persona desde el historial.
 function computeContadores() {
@@ -78,13 +89,15 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
     supabase.from('casos').select('*, caso_articulos(articulo_id)').order('created_at', { ascending: false }),
     supabase.from('sanciones').select('*').order('fecha', { ascending: false }),
     supabase.from('perfiles').select('*').order('created_at'),
+    supabase.from('examen_preguntas').select('*').order('categoria'),
+    supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg').order('created_at', { ascending: false }),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -92,6 +105,8 @@ export async function loadAll() {
   state.casos = (casos.data || []).map(mapCaso);
   state.sanciones = (sanciones.data || []).map(mapSancion);
   state.perfiles = (perfiles.data || []).map(mapPerfil);
+  state.examenPreguntas = (preguntas.data || []).map(mapPregunta);
+  state.examenIntentos = (intentos.data || []).map(mapIntento);
   computeContadores();
   notify();
 }
@@ -285,6 +300,34 @@ export async function updatePerfil(id, patch) {
 }
 export async function removePerfil(id) {
   const { error } = await supabase.from('perfiles').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+// ------------------------- TRAINING DIVISION / EXAMEN ----------------------
+export async function addPregunta(p) {
+  const { error } = await supabase.from('examen_preguntas').insert({
+    categoria: p.categoria, dificultad: p.dificultad, enunciado: p.enunciado,
+    opciones: p.opciones, correcta: p.correcta, activa: p.activa !== false,
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updatePregunta(id, p) {
+  const { error } = await supabase.from('examen_preguntas').update({
+    categoria: p.categoria, dificultad: p.dificultad, enunciado: p.enunciado,
+    opciones: p.opciones, correcta: p.correcta, activa: p.activa,
+  }).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removePregunta(id) {
+  const { error } = await supabase.from('examen_preguntas').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeIntento(id) {
+  const { error } = await supabase.from('examen_intentos').delete().eq('id', id);
   if (error) throw error;
   await loadAll();
 }

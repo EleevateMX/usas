@@ -5,7 +5,7 @@ import { icon } from '../icons.js';
 import { render } from '../router.js';
 
 const RANGOS = [
-  'N/A', 'Trainee', 'Cadet', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV',
+  'N/A', 'DUSMT', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV',
   'SDUSM I', 'SDUSM II', 'CDUSM', 'U.S Marshal', 'Director',
 ];
 const ESTADOS = ['Activo', 'Inactivo', 'LOA', 'Suspendido', 'Retirado',

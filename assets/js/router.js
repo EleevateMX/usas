@@ -6,6 +6,7 @@ import { viewPersonal } from './views/personal.js';
 import { viewFinanzas } from './views/finanzas.js';
 import { viewAsuntos } from './views/asuntos.js';
 import { viewNormativa } from './views/normativa.js';
+import { viewTraining } from './views/training.js';
 import { viewMiembros } from './views/miembros.js';
 import { viewRespaldo } from './views/respaldo.js';
 
@@ -15,6 +16,7 @@ export const ROUTES = {
   '/finanzas':  { label: 'Tesorería',       icon: 'finanzas',  view: viewFinanzas },
   '/asuntos':   { label: 'Asuntos Internos',icon: 'asuntos',   view: viewAsuntos },
   '/normativa': { label: 'Normativa',        icon: 'normativa', view: viewNormativa },
+  '/training':  { label: 'Training Division',icon: 'training',  view: viewTraining },
   '/miembros':  { label: 'Miembros',         icon: 'miembros',  view: viewMiembros, soloAdmin: true },
   '/respaldo':  { label: 'Respaldo',         icon: 'respaldo',  view: viewRespaldo },
 };

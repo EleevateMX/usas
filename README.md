@@ -58,6 +58,7 @@ cuentas ya confirmadas; el primer registro es el bootstrap del Director.
 | **Tesorería** | Ingresos/egresos con categoría, balance y resumen. |
 | **Asuntos Internos (OPR)** | Describe el reporte → el sistema **delimita los artículos vulnerados** con su rango de sanción. Exporta el **explanatory** en texto (Art. 86). |
 | **Normativa** | Catálogo editable de ~124 artículos (Libros I–V). Edición restringida a Directive+. |
+| **Training Division** | Examen teórico AMTP para aspirantes (DUSMT): link público de registro, 26 preguntas de opción múltiple, 20 min con autoenvío, respuestas que se bloquean al marcarse y **corrección en el servidor** (las respuestas correctas nunca salen al cliente). Resultados, lista de aspirantes y banco de preguntas editable (Directive+). |
 | **Miembros** | Gestión de cuentas y roles (solo Executive/Director). |
 | **Respaldo** | Exporta una copia JSON de todos los datos. |
 
