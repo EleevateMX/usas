@@ -3,10 +3,12 @@
 //  Shell cache + stale-while-revalidate para recursos propios. Las llamadas a
 //  Supabase y CDNs van siempre a la red (datos frescos).
 // ===========================================================================
-const VERSION = 'usms-v4';
+const VERSION = 'usms-v5';
 const SHELL = [
   './', './index.html', './examen.html', './academia.html', './manifest.json',
   './assets/css/styles.css',
+  './assets/manuales/introduccion.md', './assets/manuales/imagen.md',
+  './assets/manuales/comunicaciones.md', './assets/manuales/unidades.md',
   './assets/img/usms-seal.png', './assets/img/usms-seal.svg',
   './assets/img/favicon.png', './assets/img/icon-192.png', './assets/img/icon-512.png',
   './assets/img/apple-touch-icon.png',

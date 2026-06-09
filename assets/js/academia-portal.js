@@ -7,6 +7,7 @@
 import { supabase } from './supabase.js';
 import { el, toast } from './ui.js';
 import { sealImg, icon } from './icons.js';
+import { abrirLectorManual } from './manual-reader.js';
 
 const LS_KEY = 'usms_td_token';
 const app = () => document.getElementById('academia-app');
@@ -182,9 +183,14 @@ function moduloCard(m, hecho) {
       el('span', { class: 'prog-num' }, String(m.orden)),
       el('div', { class: 'portal-mod-main' }, [el('strong', {}, m.titulo), m.descripcion ? el('p', { class: 'muted small' }, m.descripcion) : null]),
     ]),
-    (m.temas || []).length ? el('div', { class: 'portal-temas' }, m.temas.map((t) => t.url
-      ? el('a', { class: 'portal-tema', href: t.url, target: '_blank' }, [icon('file', 15), el('span', {}, t.nombre), icon('link', 13)])
-      : el('span', { class: 'portal-tema nolink' }, [icon('file', 15), el('span', {}, t.nombre)]))) : null,
+    (m.temas || []).length ? el('div', { class: 'portal-temas' }, m.temas.map((t) => {
+      if (t.manual) {
+        const b = el('button', { class: 'portal-tema lectura', onClick: () => abrirLectorManual(t.manual) }, [icon('file', 15), el('span', {}, t.nombre), el('span', { class: 'tema-pill' }, 'Leer aquí')]);
+        return b;
+      }
+      if (t.url) return el('a', { class: 'portal-tema', href: t.url, target: '_blank' }, [icon('file', 15), el('span', {}, t.nombre), icon('link', 13)]);
+      return el('span', { class: 'portal-tema nolink' }, [icon('file', 15), el('span', {}, t.nombre)]);
+    })) : null,
     (m.guia || '').trim() ? el('div', { class: 'portal-guia' }, [el('span', { class: 'guia-lbl' }, 'Guía de estudio'), el('p', {}, m.guia)]) : null,
     el('div', { class: 'row gap end' }, [check]),
   ]);

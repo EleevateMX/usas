@@ -9,6 +9,8 @@ import { getState, esTD, addModulo, updateModulo, removeModulo,
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate, fmtDateTime } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
+import { abrirLectorManual } from '../manual-reader.js';
+import { MANUALES } from '../manuales.js';
 
 const portalURL = () => location.origin + location.pathname.replace(/[^/]*$/, '') + 'academia.html';
 const TIPO_LBL = { nota: 'Nota', asistencia: 'Asistencia', calificacion: 'Calificación' };
@@ -93,6 +95,15 @@ export function viewAcademia() {
         : el('p', { class: 'muted' }, 'Sin módulos. Crea el primer día del programa.'),
     ]),
 
+    // Biblioteca de manuales
+    el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('normativa', 16), 'Biblioteca de manuales']),
+        el('span', { class: 'muted small' }, 'lectura integrada (sin salir a Google)')]),
+      el('div', { class: 'biblio' }, MANUALES.map((man) => man.enApp
+        ? el('button', { class: 'biblio-item app', onClick: () => abrirLectorManual(man.slug) }, [icon('file', 15), el('span', {}, man.titulo), el('span', { class: 'tema-pill' }, 'leer en app')])
+        : el('a', { class: 'biblio-item', href: man.url, target: '_blank' }, [icon('file', 15), el('span', {}, man.titulo), icon('link', 13)]))),
+    ]),
+
     // Aspirantes
     el('div', { class: 'card no-pad' }, [
       el('div', { class: 'card-head', style: 'padding:16px 18px 0' }, [el('h3', { class: 'h-ico' }, [icon('personal', 16), 'Aspirantes (DUSMT)']),
@@ -125,9 +136,11 @@ function moduloRow(m, gestor) {
       ]) : null,
     ]),
     (m.temas || []).length
-      ? el('div', { class: 'prog-temas' }, m.temas.map((t) => t.url
-          ? el('a', { class: 'tema-chip', href: t.url, target: '_blank' }, [icon('file', 13), t.nombre])
-          : el('span', { class: 'tema-chip nolink' }, [icon('file', 13), t.nombre])))
+      ? el('div', { class: 'prog-temas' }, m.temas.map((t) => t.manual
+          ? el('button', { class: 'tema-chip lectura', onClick: () => abrirLectorManual(t.manual) }, [icon('file', 13), t.nombre, el('span', { class: 'tema-pill' }, 'leer')])
+          : t.url
+            ? el('a', { class: 'tema-chip', href: t.url, target: '_blank' }, [icon('file', 13), t.nombre])
+            : el('span', { class: 'tema-chip nolink' }, [icon('file', 13), t.nombre])))
       : null,
   ]);
 }
