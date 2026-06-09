@@ -4,19 +4,26 @@ import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } fr
 import { render } from '../router.js';
 
 const RANGOS = [
-  'Trainee', 'Cadet', 'Deputy U.S. Marshal', 'Deputy U.S. Marshal II',
-  'Deputy U.S. Marshal III', 'Senior Deputy', 'Supervisory', 'Field Supervisor',
-  'Directive Staff', 'Executive Staff', 'Director',
+  'N/A', 'Trainee', 'Cadet', 'DUSM I', 'DUSM II', 'DUSM III', 'DUSM IV',
+  'SDUSM I', 'SDUSM II', 'CDUSM', 'U.S Marshal', 'Director',
 ];
-const ESTADOS = ['Activo', 'Inactivo', 'LOA', 'Suspendido', 'Retired Deputy'];
+const ESTADOS = ['Activo', 'Inactivo', 'LOA', 'Suspendido', 'Retirado',
+  'Traslado', 'Expulsado', 'Vetado', 'KIA', 'Deshabilitada'];
+const EQUIPO = [
+  ['casco_tactico', 'Casco táctico'], ['casco_ops', 'Casco ops. especiales'],
+  ['mascara', 'Máscara'], ['gorra', 'Gorra táctica'], ['tablet', 'Tablet'],
+  ['bolsa_evidencias', 'Bolsa evidencias'], ['comlink', 'Comlink'], ['mascara_gas', 'Máscara de gas'],
+];
 
 let filtro = '';
+let estadoF = '';
 
 function filtrada() {
   return getState().personal
-    .filter((p) => !filtro || (p.nombre + p.numeroEmpleado + p.rango + p.divisiones.join(' '))
-      .toLowerCase().includes(filtro.toLowerCase()))
-    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    .filter((p) => !estadoF || p.estado === estadoF)
+    .filter((p) => !filtro || [p.nombre, p.placa, p.hash, p.rango, p.discordId, p.correo, p.divisiones.join(' ')]
+      .join(' ').toLowerCase().includes(filtro.toLowerCase()))
+    .sort((a, b) => (a.placa || 99999) - (b.placa || 99999));
 }
 
 export function viewPersonal() {
@@ -24,7 +31,10 @@ export function viewPersonal() {
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Control de Personal'),
       el('div', { class: 'row gap' }, [
-        el('input', { class: 'search', placeholder: 'Buscar nombre, nº, rango, división…',
+        el('select', { onchange: (e) => { estadoF = e.target.value; rerender(); } },
+          [el('option', { value: '' }, 'Todos los estados'),
+           ...ESTADOS.map((s) => el('option', { value: s, ...(s === estadoF ? { selected: '' } : {}) }, s))]),
+        el('input', { class: 'search', placeholder: 'Buscar nombre, placa, hash, Discord, correo…',
           value: filtro, oninput: (e) => { filtro = e.target.value; rerender(); } }),
         el('button', { class: 'btn gold', onClick: () => openForm() }, '+ Nuevo mariscal'),
       ]),
@@ -43,15 +53,15 @@ function tableNode(lista) {
     return el('div', { class: 'empty' }, 'Sin mariscales registrados. Crea el primero con “Nuevo mariscal”.');
   return el('table', { class: 'tbl rows' }, [
     el('thead', {}, el('tr', {}, [
-      el('th', {}, 'Mariscal'), el('th', {}, 'Nº'), el('th', {}, 'Rango'),
+      el('th', {}, 'Mariscal'), el('th', {}, 'Placa'), el('th', {}, 'Rango'),
       el('th', {}, 'Divisiones'), el('th', {}, 'Estado'),
       el('th', { class: 'right' }, 'Horas/mes'), el('th', { class: 'right' }, 'Adv.'),
       el('th', { class: 'right' }, 'Strikes'), el('th', {}, ''),
     ])),
     el('tbody', {}, lista.map((p) => el('tr', {}, [
       el('td', {}, [el('strong', {}, p.nombre || '(sin nombre)'),
-        el('div', { class: 'muted small' }, `Ingreso ${fmtDate(p.fechaIngreso)}`)]),
-      el('td', {}, p.numeroEmpleado || '—'),
+        el('div', { class: 'muted small' }, [p.hash || '', p.fechaIngreso ? ` · ${fmtDate(p.fechaIngreso)}` : ''].join(''))]),
+      el('td', {}, p.placa != null ? String(p.placa) : (p.numeroEmpleado || '—')),
       el('td', {}, badge(p.rango, 'rango')),
       el('td', {}, (p.divisiones || []).join(', ') || '—'),
       el('td', {}, badge(p.estado, estadoKind(p.estado))),
@@ -72,7 +82,8 @@ function tableNode(lista) {
 
 const fmtNum = (n) => (Number.isInteger(n) ? String(n) : String(n));
 function estadoKind(e) {
-  return { Activo: 'ok', Inactivo: 'warn', LOA: 'warn', Suspendido: 'red', 'Retired Deputy': '' }[e] || '';
+  return { Activo: 'ok', Inactivo: 'warn', LOA: 'warn', Suspendido: 'red',
+    Retirado: '', Traslado: '', Expulsado: 'red', Vetado: 'red', KIA: 'red', Deshabilitada: '' }[e] || '';
 }
 
 // -------------------------------- Alta / edición ---------------------------
@@ -82,14 +93,30 @@ function openForm(p = null) {
   const sel = (k, v, opts) => (f[k] = el('select', {}, opts.map((o) =>
     el('option', { value: o, ...(o === v ? { selected: '' } : {}) }, o))));
 
+  const equipo = { ...(d.equipo || {}) };
+  const equipoChecks = EQUIPO.map(([k, label]) => {
+    const cb = el('input', { type: 'checkbox', ...(equipo[k] ? { checked: '' } : {}) });
+    cb.addEventListener('change', () => { equipo[k] = cb.checked; });
+    return el('label', { class: 'chk' }, [cb, el('span', {}, label)]);
+  });
+
   const body = el('div', { class: 'form-grid' }, [
     field('Nombre del personaje', inp('nombre', d.nombre)),
-    field('Nº de empleado', inp('numeroEmpleado', d.numeroEmpleado)),
-    field('Rango', sel('rango', d.rango || 'Deputy U.S. Marshal', RANGOS)),
+    field('Nº de placa', inp('placa', d.placa, { type: 'number' })),
+    field('HASH', inp('hash', d.hash)),
+    field('Rango', sel('rango', d.rango || 'DUSM I', RANGOS)),
     field('Estado', sel('estado', d.estado || 'Activo', ESTADOS)),
+    field('ID de Discord', inp('discordId', d.discordId)),
+    field('Correo electrónico', inp('correo', d.correo)),
+    field('Teléfono', inp('telefono', d.telefono)),
     field('Divisiones (separadas por coma)', inp('divisiones', (d.divisiones || []).join(', '))),
-    field('Fecha de ingreso', inp('fechaIngreso', d.fechaIngreso || new Date().toISOString().slice(0, 10), { type: 'date' })),
+    field('Fecha de ingreso', inp('fechaIngreso', d.fechaIngreso || '', { type: 'date' })),
+    field('Fecha de salida', inp('fechaSalida', d.fechaSalida || '', { type: 'date' })),
+    field('Última actividad (Art. 13)', inp('ultimaActividad', d.ultimaActividad || '', { type: 'date' })),
     field('Horas este mes', inp('horasMes', d.horasMes ?? 0, { type: 'number', min: '0' })),
+    el('label', { class: 'field full' }, [el('span', {}, 'Equipo asignado'),
+      el('div', { class: 'chk-grid' }, equipoChecks)]),
+    el('label', { class: 'field full' }, [el('span', {}, 'Expedientes (enlace/ref.)'), inp('expedientes', d.expedientes)]),
     el('label', { class: 'field full' }, [el('span', {}, 'Notas'),
       (f.notas = el('textarea', { rows: '2' }, d.notas || ''))]),
     edit ? el('p', { class: 'muted small full' }, `Advertencias y strikes se calculan desde el historial disciplinario (botón 🛡).`) : null,
@@ -101,11 +128,13 @@ function openForm(p = null) {
 
   async function save() {
     const data = {
-      nombre: f.nombre.value.trim(), numeroEmpleado: f.numeroEmpleado.value.trim(),
+      nombre: f.nombre.value.trim(), placa: f.placa.value.trim(), hash: f.hash.value.trim(),
       rango: f.rango.value, estado: f.estado.value,
+      discordId: f.discordId.value.trim(), correo: f.correo.value.trim(), telefono: f.telefono.value.trim(),
       divisiones: f.divisiones.value.split(',').map((x) => x.trim()).filter(Boolean),
-      fechaIngreso: f.fechaIngreso.value, horasMes: +f.horasMes.value || 0,
-      notas: f.notas.value.trim(),
+      fechaIngreso: f.fechaIngreso.value, fechaSalida: f.fechaSalida.value,
+      ultimaActividad: f.ultimaActividad.value, horasMes: +f.horasMes.value || 0,
+      equipo, expedientes: f.expedientes.value.trim(), notas: f.notas.value.trim(),
     };
     if (!data.nombre) return toast('El nombre es obligatorio', 'err');
     try {

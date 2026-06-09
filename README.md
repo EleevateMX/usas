@@ -54,7 +54,7 @@ cuentas ya confirmadas; el primer registro es el bootstrap del Director.
 | Módulo | Para qué sirve |
 |---|---|
 | **Centro de Mando** | KPIs: personal activo, balance, casos OPR abiertos, strikes; banderas de actividad (< 40 h/mes) y últimos casos. |
-| **Personal** | Roster de mariscales + **historial disciplinario** por agente (🛡): registra advertencias/strikes citando artículos. |
+| **Personal** | Roster de mariscales (placa, hash, Discord, correo, equipo táctico, expedientes) con filtro por estado + **historial disciplinario** por agente (🛡): registra advertencias/strikes citando artículos. Datos importados del registro oficial del Supervisory Staff (178 registros). |
 | **Tesorería** | Ingresos/egresos con categoría, balance y resumen. |
 | **Asuntos Internos (OPR)** | Describe el reporte → el sistema **delimita los artículos vulnerados** con su rango de sanción. Exporta el **explanatory** en texto (Art. 86). |
 | **Normativa** | Catálogo editable de ~124 artículos (Libros I–V). Edición restringida a Directive+. |
@@ -69,6 +69,8 @@ cuentas ya confirmadas; el primer registro es el bootstrap del Director.
   cuenta a los ~90 días; el historial completo nunca se borra.
 - **Medio strike automático** (Art. 84): al acumular 3 advertencias vigentes, el
   sistema agrega `0.5 strike` y marca esas advertencias como saldadas.
+- **Alerta de inactividad** (Art. 13): el Centro de Mando marca a los activos
+  cuya “última actividad” supera 7 días.
 - **Analizador de infracciones**: puntúa los artículos por relevancia (etiquetas
   + texto, ignorando acentos) y muestra el rango de sanción. Usa siempre la
   normativa **vigente y editable** de la base de datos.

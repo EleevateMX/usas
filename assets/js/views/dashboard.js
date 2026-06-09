@@ -15,6 +15,15 @@ export function viewDashboard() {
 
   const recientes = [...s.casos].reverse().slice(0, 5);
 
+  // Art. 13: activos con última actividad registrada hace más de 7 días.
+  const hoy = Date.now();
+  const inactivos7 = s.personal
+    .filter((p) => p.estado === 'Activo' && p.ultimaActividad)
+    .map((p) => ({ p, dias: Math.floor((hoy - new Date(p.ultimaActividad)) / 86400000) }))
+    .filter((x) => x.dias >= 7)
+    .sort((a, b) => b.dias - a.dias);
+  const sinRegistro = s.personal.filter((p) => p.estado === 'Activo' && !p.ultimaActividad).length;
+
   const kpi = (label, value, sub, cls = '') =>
     el('div', { class: `card kpi ${cls}` }, [
       el('div', { class: 'kpi-val' }, String(value)),
@@ -57,6 +66,21 @@ export function viewDashboard() {
               ])))
           : el('p', { class: 'muted' }, 'No hay casos registrados todavía.'),
       ]),
+    ]),
+
+    el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', {}, '⏱ Inactividad — Art. 13'),
+        el('span', { class: 'muted small' }, '> 7 días sin actividad')]),
+      inactivos7.length
+        ? el('div', { class: 'list' }, inactivos7.slice(0, 8).map(({ p, dias }) =>
+            el('div', { class: 'list-item' }, [
+              el('div', {}, [el('strong', {}, p.nombre), el('span', { class: 'muted small' }, ` · placa ${p.placa ?? '—'}`)]),
+              badge(`${dias} días`, dias >= 7 ? 'red' : 'warn'),
+            ])))
+        : el('p', { class: 'muted' }, 'Sin inactividades registradas que superen 7 días.'),
+      sinRegistro
+        ? el('p', { class: 'muted xsmall' }, `${sinRegistro} activos sin “última actividad” registrada. Edita el mariscal para registrarla y activar el control del Art. 13.`)
+        : null,
     ]),
 
     el('div', { class: 'card welcome' }, [

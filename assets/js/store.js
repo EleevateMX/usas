@@ -28,8 +28,12 @@ export function getState() { return state; }
 // ------------------------------- Mapeos ------------------------------------
 const mapPersona = (r) => ({
   id: r.id, nombre: r.nombre, numeroEmpleado: r.numero_empleado || '',
+  placa: r.placa ?? null, hash: r.hash || '', telefono: r.telefono || '',
+  discordId: r.discord_id || '', correo: r.correo || '',
   rango: r.rango, divisiones: r.divisiones || [], estado: r.estado,
-  fechaIngreso: r.fecha_ingreso, horasMes: Number(r.horas_mes) || 0,
+  fechaIngreso: r.fecha_ingreso, fechaSalida: r.fecha_salida,
+  ultimaActividad: r.ultima_actividad, horasMes: Number(r.horas_mes) || 0,
+  equipo: r.equipo || {}, expedientes: r.expedientes || '',
   notas: r.notas || '', advertencias: 0, strikes: 0,
   advertenciasHist: 0, strikesHist: 0,
 });
@@ -104,25 +108,33 @@ export const esDirectiva = () => ['Directive', 'Executive', 'Director'].includes
 export const esAdmin = () => ['Executive', 'Director'].includes(rolActual());
 
 // ------------------------------- PERSONAL ----------------------------------
+function personaToRow(p) {
+  const row = {};
+  if ('nombre' in p) row.nombre = p.nombre;
+  if ('placa' in p) row.placa = p.placa === '' || p.placa == null ? null : Number(p.placa);
+  if ('hash' in p) row.hash = p.hash || null;
+  if ('telefono' in p) row.telefono = p.telefono || null;
+  if ('discordId' in p) row.discord_id = p.discordId || null;
+  if ('correo' in p) row.correo = p.correo || null;
+  if ('rango' in p) row.rango = p.rango;
+  if ('divisiones' in p) row.divisiones = p.divisiones;
+  if ('estado' in p) row.estado = p.estado;
+  if ('fechaIngreso' in p) row.fecha_ingreso = p.fechaIngreso || null;
+  if ('fechaSalida' in p) row.fecha_salida = p.fechaSalida || null;
+  if ('ultimaActividad' in p) row.ultima_actividad = p.ultimaActividad || null;
+  if ('horasMes' in p) row.horas_mes = p.horasMes;
+  if ('equipo' in p) row.equipo = p.equipo;
+  if ('expedientes' in p) row.expedientes = p.expedientes;
+  if ('notas' in p) row.notas = p.notas;
+  return row;
+}
 export async function addPersona(p) {
-  const { error } = await supabase.from('personal').insert({
-    nombre: p.nombre, numero_empleado: p.numeroEmpleado, rango: p.rango,
-    divisiones: p.divisiones, estado: p.estado, fecha_ingreso: p.fechaIngreso,
-    horas_mes: p.horasMes, notas: p.notas,
-  });
+  const { error } = await supabase.from('personal').insert(personaToRow(p));
   if (error) throw error;
   await loadAll();
 }
 export async function updatePersona(id, p) {
-  const patch = {};
-  if ('nombre' in p) patch.nombre = p.nombre;
-  if ('numeroEmpleado' in p) patch.numero_empleado = p.numeroEmpleado;
-  if ('rango' in p) patch.rango = p.rango;
-  if ('divisiones' in p) patch.divisiones = p.divisiones;
-  if ('estado' in p) patch.estado = p.estado;
-  if ('fechaIngreso' in p) patch.fecha_ingreso = p.fechaIngreso;
-  if ('horasMes' in p) patch.horas_mes = p.horasMes;
-  if ('notas' in p) patch.notas = p.notas;
+  const patch = personaToRow(p);
   patch.updated_at = new Date().toISOString();
   const { error } = await supabase.from('personal').update(patch).eq('id', id);
   if (error) throw error;

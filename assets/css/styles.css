@@ -271,3 +271,9 @@ textarea { resize: vertical; }
   .hist-kpis { grid-template-columns: 1fr 1fr; }
   .form-grid.compact { grid-template-columns: 1fr 1fr; }
 }
+
+/* ---------------- Checkboxes de equipo ---------------- */
+.chk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.chk { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text); cursor: pointer; }
+.chk input { width: auto; }
+@media (max-width: 760px) { .chk-grid { grid-template-columns: 1fr 1fr; } }
