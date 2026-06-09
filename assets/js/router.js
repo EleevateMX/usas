@@ -8,6 +8,7 @@ import { viewAsuntos } from './views/asuntos.js';
 import { viewNormativa } from './views/normativa.js';
 import { viewReferencia } from './views/referencia.js';
 import { viewTraining } from './views/training.js';
+import { viewAcademia } from './views/academia.js';
 import { viewDivisiones } from './views/divisiones.js';
 import { viewMiembros } from './views/miembros.js';
 import { viewRespaldo } from './views/respaldo.js';
@@ -22,6 +23,7 @@ export const ROUTES = {
   '/normativa': { label: 'Normativa',        icon: 'normativa', view: viewNormativa },
   '/referencia':{ label: 'Referencia',       icon: 'referencia',view: viewReferencia },
   '/training':  { label: 'Training Division',icon: 'training',  view: viewTraining, gate: esTD },
+  '/academia':  { label: 'Programa TD',      icon: 'award',     view: viewAcademia, gate: esTD },
   '/miembros':  { label: 'Miembros',         icon: 'miembros',  view: viewMiembros, gate: esAdmin },
   '/respaldo':  { label: 'Respaldo',         icon: 'respaldo',  view: viewRespaldo },
 };

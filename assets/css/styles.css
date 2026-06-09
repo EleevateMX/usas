@@ -741,3 +741,58 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .fallo-fill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--red)); }
 .fallo-n { white-space: nowrap; }
 @media (max-width: 720px) { .fallo-row { grid-template-columns: 1fr auto; } .fallo-bar { display: none; } }
+
+/* =========================================================================
+   Programa Académico TD (panel) + Portal de estudio (DUSMT)
+   ========================================================================= */
+.prog-list { display: flex; flex-direction: column; gap: 10px; }
+.prog-mod { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--navy-850); }
+.prog-mod.on { border-left: 3px solid var(--green); }
+.prog-mod-head { display: flex; align-items: center; gap: 12px; }
+.prog-mod-main { flex: 1; min-width: 0; }
+.prog-num {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-family: 'Oswald', sans-serif; font-weight: 700; color: var(--gold); background: var(--navy-700); border: 1px solid var(--line);
+}
+.prog-temas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.tema-chip, .portal-tema {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+  background: var(--navy-800); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--gold-soft);
+}
+.tema-chip.nolink, .portal-tema.nolink { color: var(--muted); }
+a.tema-chip:hover, a.portal-tema:hover { border-color: var(--gold); }
+
+.prog-cell { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+.prog-bar { flex: 1; height: 8px; border-radius: 99px; background: var(--navy-700); overflow: hidden; min-width: 70px; }
+.prog-bar.lg { height: 11px; margin-top: 6px; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--gold)); }
+
+/* Seguimiento */
+.seg-list { display: flex; flex-direction: column; gap: 8px; }
+.seg-item { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--navy-850); }
+.seg-txt { margin: 6px 0; }
+
+/* Portal de estudio (público) */
+.ex-card.portal { text-align: left; }
+.portal-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.ex-brand.mini { display: flex; align-items: center; gap: 12px; flex-direction: row; margin: 0; }
+.ex-brand.mini .seal-img { margin: 0; }
+.portal-prog { background: var(--navy-800); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 10px 0 16px; }
+.portal-mods { display: flex; flex-direction: column; gap: 14px; }
+.portal-mod { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--navy-850); }
+.portal-mod.done { border-color: rgba(52,211,153,.4); }
+.portal-mod-head { display: flex; align-items: flex-start; gap: 12px; }
+.portal-mod-main { flex: 1; min-width: 0; }
+.portal-mod-main p { margin: 4px 0 0; }
+.portal-temas { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.portal-tema { justify-content: space-between; padding: 11px 13px; font-size: 14px; }
+.portal-tema span { flex: 1; }
+.portal-check {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600;
+  background: var(--navy-700); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 8px 14px;
+}
+.portal-check.on { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.5); color: #8ff0cf; }
+.portal-check:disabled { opacity: .6; }
+.portal-locked { display: flex; align-items: center; gap: 8px; color: var(--muted); justify-content: center; margin-top: 16px; font-size: 14px; }
+.portal-notas { background: var(--navy-800); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.portal-notas .fb-head { color: var(--gold-soft); margin-bottom: 8px; }

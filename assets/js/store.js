@@ -21,6 +21,10 @@ let state = {
   examenIntentos: [],
   examenSesiones: [],
   divisionMiembros: [],
+  tdModulos: [],
+  tdAspirantes: [],
+  tdSeguimiento: [],
+  tdProgreso: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -88,6 +92,21 @@ const mapDivMiembro = (r) => ({
   id: r.id, personaId: r.persona_id, division: r.division,
   cargo: r.cargo, notas: r.notas || '', fecha: r.created_at,
 });
+const mapModulo = (r) => ({
+  id: r.id, orden: r.orden, titulo: r.titulo, descripcion: r.descripcion || '',
+  temas: r.temas || [], liberado: r.liberado, fecha: r.created_at,
+});
+const mapAspirante = (r) => ({
+  id: r.id, nombre: r.nombre, discord: r.discord, sesionId: r.sesion_id,
+  estado: r.estado, fecha: r.created_at,
+});
+const mapSeguimiento = (r) => ({
+  id: r.id, aspiranteId: r.aspirante_id, autor: r.autor || '', moduloOrden: r.modulo_orden,
+  tipo: r.tipo, contenido: r.contenido || '', visibleAspirante: r.visible_aspirante, fecha: r.created_at,
+});
+const mapProgreso = (r) => ({
+  id: r.id, discord: r.discord, moduloId: r.modulo_id, completado: r.completado, fecha: r.created_at,
+});
 
 // Recalcula advertencias/strikes vigentes de cada persona desde el historial.
 function computeContadores() {
@@ -104,7 +123,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros, tdMods, tdAsp, tdSeg, tdProg] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -115,6 +134,10 @@ export async function loadAll() {
     supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id, alertas, eventos, preguntas, respuestas').order('created_at', { ascending: false }),
     supabase.from('examen_sesiones').select('*').order('created_at', { ascending: false }),
     supabase.from('division_miembros').select('*').order('created_at'),
+    supabase.from('td_modulos').select('*').order('orden'),
+    supabase.from('td_aspirantes').select('*').order('created_at', { ascending: false }),
+    supabase.from('td_seguimiento').select('*').order('created_at', { ascending: false }),
+    supabase.from('td_progreso').select('*'),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -126,6 +149,10 @@ export async function loadAll() {
   state.examenIntentos = (intentos.data || []).map(mapIntento);
   state.examenSesiones = (sesiones.data || []).map(mapSesion);
   state.divisionMiembros = (divMiembros.data || []).map(mapDivMiembro);
+  state.tdModulos = (tdMods.data || []).map(mapModulo);
+  state.tdAspirantes = (tdAsp.data || []).map(mapAspirante);
+  state.tdSeguimiento = (tdSeg.data || []).map(mapSeguimiento);
+  state.tdProgreso = (tdProg.data || []).map(mapProgreso);
   computeContadores();
   notify();
 }
@@ -433,6 +460,64 @@ export async function darDeBaja(id, { estado, fechaSalida, motivo }) {
   const sello = `[BAJA ${fechaSalida || new Date().toISOString().slice(0, 10)}] ${estado}${motivo ? ' — ' + motivo : ''}`;
   const notas = p?.notas ? `${sello}\n${p.notas}` : sello;
   await updatePersona(id, { estado, fechaSalida: fechaSalida || new Date().toISOString().slice(0, 10), notas });
+}
+
+// ----------------------- TRAINING DIVISION · PROGRAMA ----------------------
+export async function addModulo(m) {
+  const orden = m.orden || ((state.tdModulos.at(-1)?.orden || 0) + 1);
+  const { error } = await supabase.from('td_modulos').insert({
+    orden, titulo: m.titulo, descripcion: m.descripcion || '', temas: m.temas || [], liberado: !!m.liberado,
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateModulo(id, patch) {
+  const row = {};
+  for (const k of ['orden', 'titulo', 'descripcion', 'temas', 'liberado']) if (k in patch) row[k] = patch[k];
+  const { error } = await supabase.from('td_modulos').update(row).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeModulo(id) {
+  const { error } = await supabase.from('td_modulos').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+export async function addAspirante(a) {
+  const { error } = await supabase.from('td_aspirantes').insert({
+    nombre: a.nombre, discord: a.discord, sesion_id: a.sesionId || null, estado: a.estado || 'En curso',
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateAspirante(id, patch) {
+  const row = {};
+  if ('nombre' in patch) row.nombre = patch.nombre;
+  if ('estado' in patch) row.estado = patch.estado;
+  if ('sesionId' in patch) row.sesion_id = patch.sesionId || null;
+  const { error } = await supabase.from('td_aspirantes').update(row).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeAspirante(id) {
+  const { error } = await supabase.from('td_aspirantes').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+export async function addSeguimiento(s) {
+  const { error } = await supabase.from('td_seguimiento').insert({
+    aspirante_id: s.aspiranteId, autor: s.autor || '', modulo_orden: s.moduloOrden || null,
+    tipo: s.tipo || 'nota', contenido: s.contenido || '', visible_aspirante: s.visibleAspirante !== false,
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeSeguimiento(id) {
+  const { error } = await supabase.from('td_seguimiento').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
 }
 
 // ------------------------------ Export / utils -----------------------------
