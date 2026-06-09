@@ -3,6 +3,7 @@ import { getState, esDirectiva, addPregunta, updatePregunta, removePregunta, rem
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
+import { exportarConstancia } from '../export.js';
 
 const CATS = {
   intro: 'Introducción', normativa: 'Normativa', imagen: 'Código de Imagen',
@@ -36,6 +37,20 @@ export function viewTraining() {
   };
   const idsSes = new Set(s.examenSesiones.map((x) => x.id));
   const huerfanos = intentos.filter((i) => !i.sesionId || !idsSes.has(i.sesionId));
+
+  // Analítica: preguntas más falladas del banco (sobre exámenes enviados).
+  const byId = new Map(s.examenPreguntas.map((q) => [q.id, q]));
+  const stat = {};
+  intentos.filter((i) => i.estado !== 'en_curso').forEach((i) => {
+    (i.preguntas || []).forEach((pm) => {
+      const q = byId.get(pm.id); if (!q) return;
+      stat[q.id] = stat[q.id] || { veces: 0, fallos: 0, q };
+      stat[q.id].veces++;
+      if (Number(i.respuestas?.[q.id]) !== q.correcta) stat[q.id].fallos++;
+    });
+  });
+  const masFalladas = Object.values(stat).map((x) => ({ ...x, pct: Math.round((x.fallos / x.veces) * 100) }))
+    .filter((x) => x.fallos > 0).sort((a, b) => b.pct - a.pct || b.veces - a.veces).slice(0, 8);
 
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
@@ -82,6 +97,20 @@ export function viewTraining() {
           ])
         : el('div', { class: 'card' }, [el('p', { class: 'muted', style: 'margin:0' }, 'Los resultados aparecen dentro de cada academia.')]),
     ]),
+
+    // Analítica — preguntas más falladas
+    masFalladas.length ? el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('alert', 16), 'Preguntas más falladas']),
+        el('span', { class: 'muted small' }, 'sobre exámenes enviados')]),
+      el('div', { class: 'fallos' }, masFalladas.map((x) => el('div', { class: 'fallo-row' }, [
+        el('div', { class: 'fallo-main' }, [
+          badge(CATS[x.q.categoria] || x.q.categoria, 'rango'),
+          el('span', { class: 'fallo-enun' }, x.q.enunciado.length > 90 ? x.q.enunciado.slice(0, 90) + '…' : x.q.enunciado),
+        ]),
+        el('div', { class: 'fallo-bar' }, [el('div', { class: 'fallo-fill', style: `width:${x.pct}%` })]),
+        el('span', { class: 'fallo-n muted small' }, `${x.fallos}/${x.veces} · ${x.pct}%`),
+      ]))),
+    ]) : null,
 
     // Banco de preguntas
     el('div', { class: 'card no-pad' }, [
@@ -153,7 +182,9 @@ function tablaIntentos(lista) {
       el('td', {}, estadoBadge(i)),
       el('td', { class: 'right nowrap' }, [
         i.estado !== 'en_curso'
-          ? el('button', { class: 'icon-btn', title: 'Ver preguntas', onClick: () => openRevision(i) }, [icon('file', 15)]) : null,
+          ? el('button', { class: 'icon-btn', title: 'Ver examen de esta persona', onClick: () => openRevision(i) }, [icon('file', 15)]) : null,
+        i.aprobado
+          ? el('button', { class: 'icon-btn', title: 'Constancia (PDF)', onClick: () => exportarConstancia(i, nombreAcademia(i)) }, [icon('award', 15)]) : null,
         esDirectiva()
           ? el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
               confirmDialog(`¿Eliminar el intento de ${i.nombre}?`, async () => { try { await removeIntento(i.id); toast('Eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 15)]) : null,
@@ -175,6 +206,7 @@ function openRevision(i) {
       el('div', {}, [el('strong', {}, i.nombre), i.discord ? el('span', { class: 'muted small' }, ` · ${i.discord}`) : null]),
       el('span', { class: `badge ${i.aprobado ? 'ok' : 'red'}` }, `${pctNota(i)}% · ${i.puntaje}/${i.total}`),
     ]),
+    items.length ? diagnosticoTemas(items, i.respuestas || {}) : null,
     items.length
       ? el('div', { class: 'rev-list' }, items.map((q, idx) => revisionCard(q, i.respuestas?.[q.id], idx)))
       : el('p', { class: 'muted' }, 'Este intento no guardó el detalle de preguntas (resultado de demostración).'),
@@ -219,6 +251,37 @@ function alertaResumen(i) {
   return `Posible manipulación (Internal Affairs): ${partes.join(', ') || i.alertas + ' alertas'}`;
 }
 const pctNota = (i) => (i.total ? Math.round((i.puntaje / i.total) * 100) : 0);
+function nombreAcademia(i) {
+  const ses = getState().examenSesiones.find((x) => x.id === i.sesionId);
+  return ses ? ses.nombre : 'USMS';
+}
+
+// Diagnóstico por tema de un examen: en qué bloques está más débil la persona.
+function diagnosticoTemas(items, respuestas) {
+  const agg = {};
+  items.forEach((q) => {
+    const c = q.categoria || 'otros';
+    agg[c] = agg[c] || { ok: 0, total: 0 };
+    agg[c].total++;
+    if (Number(respuestas[q.id]) === q.correcta) agg[c].ok++;
+  });
+  const temas = Object.entries(agg).map(([c, v]) => ({
+    label: CATS[c] || c, ok: v.ok, total: v.total,
+    pct: Math.round((v.ok / v.total) * 100), reforzar: v.ok / v.total < 0.6,
+  })).sort((a, b) => a.pct - b.pct);
+  const debiles = temas.filter((t) => t.reforzar);
+
+  return el('div', { class: 'rev-diag' }, [
+    el('div', { class: 'rev-diag-head' }, [icon('layers', 15),
+      el('strong', {}, 'Diagnóstico por tema'),
+      el('span', { class: 'muted small' }, debiles.length ? `${debiles.length} a reforzar` : 'sin debilidades marcadas')]),
+    el('div', { class: 'rev-diag-grid' }, temas.map((t) => el('div', { class: 'rev-diag-item' + (t.reforzar ? ' bajo' : '') }, [
+      el('div', { class: 'rev-diag-top' }, [el('span', {}, t.label), el('span', { class: 'rev-diag-pct' }, `${t.pct}%`)]),
+      el('div', { class: 'rev-diag-bar' }, [el('div', { class: 'rev-diag-fill', style: `width:${t.pct}%` })]),
+      el('div', { class: 'muted xsmall' }, `${t.ok}/${t.total}`),
+    ]))),
+  ]);
+}
 function estadoBadge(i) {
   if (i.estado === 'en_curso') return badge('en curso', 'warn');
   if (i.estado === 'expirado') return badge('expirado', '');

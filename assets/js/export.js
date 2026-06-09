@@ -101,11 +101,53 @@ export function exportarReportePDF() {
   <div class="foot">Documento interno y confidencial · U.S. Marshals Service · GTAHUB Roleplay · Generado desde el Centro de Mando.</div>
 </body></html>`;
 
+  abrirParaImprimir(html, 'Reporte generado — usa “Guardar como PDF”');
+}
+
+function abrirParaImprimir(html, msg) {
   const w = window.open('', '_blank');
   if (!w) { toast('Permite las ventanas emergentes para exportar el PDF', 'err'); return; }
   w.document.write(html);
   w.document.close();
   w.focus();
   setTimeout(() => { try { w.print(); } catch { /* el usuario puede imprimir manualmente */ } }, 500);
-  toast('Reporte generado — usa “Guardar como PDF”');
+  toast(msg);
+}
+
+// --------------------------- Constancia / diploma --------------------------
+export function exportarConstancia(intento, academia) {
+  const sealUrl = new URL('assets/img/usms-seal.png', location.href).href;
+  const pct = intento.total ? Math.round((intento.puntaje / intento.total) * 100) : 0;
+  const fecha = new Date(intento.fecha || Date.now()).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Constancia — ${esc(intento.nombre)}</title>
+<style>
+  *{box-sizing:border-box} body{font-family:Georgia,'Times New Roman',serif;margin:0;color:#0b1120}
+  .sheet{width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}
+  .cert{width:760px;max-width:100%;border:3px solid #0b1120;outline:1px solid #d9b53d;outline-offset:6px;padding:48px 56px;text-align:center;position:relative}
+  .cert img{width:96px;height:96px;margin-bottom:8px}
+  .kick{letter-spacing:5px;font-size:12px;color:#7c5e1a;text-transform:uppercase}
+  h1{font-size:34px;margin:6px 0 2px;letter-spacing:2px}
+  .sub{color:#555;font-size:13px;margin-bottom:26px}
+  .lead{font-size:14px;color:#333;margin:0 0 6px}
+  .name{font-size:30px;margin:8px 0;border-bottom:2px solid #d9b53d;display:inline-block;padding:0 24px 6px}
+  .body{font-size:15px;color:#222;line-height:1.6;margin:14px auto 24px;max-width:560px}
+  .score{font-size:40px;color:#7c5e1a;font-weight:bold;margin:8px 0}
+  .firms{display:flex;justify-content:space-around;margin-top:46px;font-size:12px;color:#444}
+  .firms div{border-top:1px solid #888;padding-top:6px;width:200px}
+  .foot{margin-top:28px;font-size:10px;color:#999;letter-spacing:1px;text-transform:uppercase}
+  @media print{.sheet{padding:0}}
+</style></head><body><div class="sheet"><div class="cert">
+  <img src="${sealUrl}" alt="">
+  <div class="kick">U.S. Marshals Service · Training Division</div>
+  <h1>CONSTANCIA</h1>
+  <div class="sub">Evaluación Teórica Aprobada</div>
+  <p class="lead">Se otorga la presente a</p>
+  <div class="name">${esc(intento.nombre)}</div>
+  <p class="body">Por haber aprobado satisfactoriamente la evaluación teórica de la academia <strong>${esc(academia || 'USMS')}</strong>, demostrando el conocimiento requerido de la normativa y los procedimientos del Servicio.</p>
+  <div class="score">${pct}%</div>
+  <p class="body" style="margin-top:0">${intento.puntaje} de ${intento.total} respuestas correctas · ${esc(fecha)}</p>
+  <div class="firms"><div>Instructor — Training Division</div><div>Dirección — U.S. Marshals Service</div></div>
+  <div class="foot">Documento interno · GTAHUB Roleplay</div>
+</div></div></body></html>`;
+  abrirParaImprimir(html, 'Constancia generada — usa “Guardar como PDF”');
 }

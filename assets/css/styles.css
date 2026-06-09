@@ -693,3 +693,51 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .rev-why .ico { color: var(--gold); flex-shrink: 0; }
 
 @media (max-width: 640px) { .fb-temas { grid-template-columns: 1fr; } }
+
+/* =========================================================================
+   Módulo de Divisiones · diagnóstico de examen · preguntas más falladas
+   ========================================================================= */
+.div-mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.division-card { display: flex; flex-direction: column; gap: 12px; }
+.div-head { display: flex; align-items: center; gap: 12px; }
+.div-sigla-lg {
+  flex-shrink: 0; width: 50px; height: 50px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: .5px;
+  color: var(--gold); background: linear-gradient(160deg, var(--navy-700), var(--navy-800)); border: 1px solid var(--line);
+}
+.div-head > div:nth-child(2) { flex: 1; min-width: 0; }
+.div-cargos { display: flex; flex-direction: column; gap: 12px; }
+.div-cargo-group { display: flex; flex-direction: column; gap: 6px; }
+.div-cargo-lbl { display: flex; align-items: center; gap: 6px; }
+.div-people { display: flex; flex-direction: column; gap: 5px; }
+.div-person {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--navy-850); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px;
+}
+.div-person.inact { opacity: .62; }
+.div-person-main { flex: 1; min-width: 0; }
+.div-row-act { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.mini-sel { background: var(--navy-800); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 3px 6px; font-size: 12px; }
+
+/* Diagnóstico por tema en la revisión del examen */
+.rev-diag { background: var(--navy-850); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.rev-diag-head { display: flex; align-items: center; gap: 8px; color: var(--gold-soft); margin-bottom: 10px; }
+.rev-diag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.rev-diag-item { border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--navy-800); }
+.rev-diag-item.bajo { border-color: rgba(246,166,9,.5); background: rgba(246,166,9,.08); }
+.rev-diag-top { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.rev-diag-pct { color: var(--gold-soft); }
+.rev-diag-bar { height: 6px; border-radius: 99px; background: var(--navy-700); overflow: hidden; }
+.rev-diag-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--gold)); }
+.rev-diag-item.bajo .rev-diag-fill { background: linear-gradient(90deg, var(--red), var(--amber)); }
+
+/* Preguntas más falladas */
+.fallos { display: flex; flex-direction: column; gap: 9px; }
+.fallo-row { display: grid; grid-template-columns: 1fr 120px auto; align-items: center; gap: 12px; }
+.fallo-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fallo-enun { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+.fallo-bar { height: 8px; border-radius: 99px; background: var(--navy-700); overflow: hidden; }
+.fallo-fill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--red)); }
+.fallo-n { white-space: nowrap; }
+@media (max-width: 720px) { .fallo-row { grid-template-columns: 1fr auto; } .fallo-bar { display: none; } }

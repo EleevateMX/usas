@@ -20,6 +20,7 @@ let state = {
   examenPreguntas: [],
   examenIntentos: [],
   examenSesiones: [],
+  divisionMiembros: [],
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -83,6 +84,10 @@ const mapSesion = (r) => ({
   faciles: r.faciles, medias: r.medias, dificiles: r.dificiles,
   duracionMin: r.duracion_min, activa: r.activa, fecha: r.created_at,
 });
+const mapDivMiembro = (r) => ({
+  id: r.id, personaId: r.persona_id, division: r.division,
+  cargo: r.cargo, notas: r.notas || '', fecha: r.created_at,
+});
 
 // Recalcula advertencias/strikes vigentes de cada persona desde el historial.
 function computeContadores() {
@@ -99,7 +104,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, sesiones, divMiembros] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -109,6 +114,7 @@ export async function loadAll() {
     supabase.from('examen_preguntas').select('*').order('categoria'),
     supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg, sesion_id, alertas, eventos, preguntas, respuestas').order('created_at', { ascending: false }),
     supabase.from('examen_sesiones').select('*').order('created_at', { ascending: false }),
+    supabase.from('division_miembros').select('*').order('created_at'),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -119,6 +125,7 @@ export async function loadAll() {
   state.examenPreguntas = (preguntas.data || []).map(mapPregunta);
   state.examenIntentos = (intentos.data || []).map(mapIntento);
   state.examenSesiones = (sesiones.data || []).map(mapSesion);
+  state.divisionMiembros = (divMiembros.data || []).map(mapDivMiembro);
   computeContadores();
   notify();
 }
@@ -395,6 +402,37 @@ export async function removeSesion(id) {
   const { error } = await supabase.from('examen_sesiones').delete().eq('id', id);
   if (error) throw error;
   await loadAll();
+}
+
+// ------------------------- DIVISIONES (membresía) --------------------------
+export async function addDivMiembro(d) {
+  const { error } = await supabase.from('division_miembros').insert({
+    persona_id: d.personaId, division: d.division, cargo: d.cargo || 'Miembro', notas: d.notas || '',
+  });
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateDivMiembro(id, patch) {
+  const row = {};
+  if ('division' in patch) row.division = patch.division;
+  if ('cargo' in patch) row.cargo = patch.cargo;
+  if ('notas' in patch) row.notas = patch.notas;
+  const { error } = await supabase.from('division_miembros').update(row).eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function removeDivMiembro(id) {
+  const { error } = await supabase.from('division_miembros').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+
+// Da de baja a un mariscal: fija estado de salida, fecha y deja constancia en notas.
+export async function darDeBaja(id, { estado, fechaSalida, motivo }) {
+  const p = state.personal.find((x) => x.id === id);
+  const sello = `[BAJA ${fechaSalida || new Date().toISOString().slice(0, 10)}] ${estado}${motivo ? ' — ' + motivo : ''}`;
+  const notas = p?.notas ? `${sello}\n${p.notas}` : sello;
+  await updatePersona(id, { estado, fechaSalida: fechaSalida || new Date().toISOString().slice(0, 10), notas });
 }
 
 // ------------------------------ Export / utils -----------------------------

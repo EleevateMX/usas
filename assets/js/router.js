@@ -8,6 +8,7 @@ import { viewAsuntos } from './views/asuntos.js';
 import { viewNormativa } from './views/normativa.js';
 import { viewReferencia } from './views/referencia.js';
 import { viewTraining } from './views/training.js';
+import { viewDivisiones } from './views/divisiones.js';
 import { viewMiembros } from './views/miembros.js';
 import { viewRespaldo } from './views/respaldo.js';
 import { esAdmin, esTD } from './store.js';
@@ -15,6 +16,7 @@ import { esAdmin, esTD } from './store.js';
 export const ROUTES = {
   '/dashboard': { label: 'Centro de Mando', icon: 'dashboard', view: viewDashboard },
   '/personal':  { label: 'Personal',        icon: 'personal',  view: viewPersonal },
+  '/divisiones':{ label: 'Divisiones',       icon: 'layers',    view: viewDivisiones },
   '/finanzas':  { label: 'Tesorería',       icon: 'finanzas',  view: viewFinanzas },
   '/asuntos':   { label: 'Asuntos Internos',icon: 'asuntos',   view: viewAsuntos },
   '/normativa': { label: 'Normativa',        icon: 'normativa', view: viewNormativa },

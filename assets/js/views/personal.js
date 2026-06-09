@@ -1,5 +1,5 @@
 import { getState, addPersona, updatePersona, removePersona,
-  addSancion, removeSancion, setSancionVencida } from '../store.js';
+  addSancion, removeSancion, setSancionVencida, darDeBaja } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -75,6 +75,8 @@ function tableNode(lista) {
       el('td', { class: 'right nowrap' }, [
         el('button', { class: 'icon-btn', title: 'Historial disciplinario', onClick: () => openHistorial(p) }, [icon('history', 16)]),
         el('button', { class: 'icon-btn', title: 'Editar', onClick: () => openForm(p) }, [icon('edit', 16)]),
+        p.estado === 'Activo' || p.estado === 'Inactivo' || p.estado === 'LOA'
+          ? el('button', { class: 'icon-btn', title: 'Dar de baja', onClick: () => openBaja(p) }, [icon('logout', 16)]) : null,
         el('button', { class: 'icon-btn', title: 'Eliminar', onClick: () =>
           confirmDialog(`¿Eliminar a ${p.nombre || 'este mariscal'}?`, async () => {
             try { await removePersona(p.id); toast('Mariscal eliminado'); render(); } catch (e) { toast(e.message, 'err'); }
@@ -149,6 +151,34 @@ function openForm(p = null) {
   }
 
   modal(edit ? `Editar — ${d.nombre}` : 'Nuevo mariscal', body, { wide: true });
+}
+
+// -------------------------------- Dar de baja ------------------------------
+const ESTADOS_BAJA = ['Retirado', 'Traslado', 'Expulsado', 'Vetado', 'KIA', 'Suspendido'];
+function openBaja(p) {
+  const f = {};
+  f.estado = el('select', {}, ESTADOS_BAJA.map((s) => el('option', { value: s }, s)));
+  f.fecha = el('input', { type: 'date', value: new Date().toISOString().slice(0, 10) });
+  f.motivo = el('input', { placeholder: 'Motivo / referencia (opcional)' });
+
+  async function confirmar() {
+    try {
+      await darDeBaja(p.id, { estado: f.estado.value, fechaSalida: f.fecha.value, motivo: f.motivo.value.trim() });
+      toast(`${p.nombre} dado de baja (${f.estado.value})`); closeModal(); render();
+    } catch (e) { toast(e.message, 'err'); }
+  }
+
+  const body = el('div', { class: 'form-grid' }, [
+    el('p', { class: 'muted small full' }, `Vas a dar de baja a ${p.nombre} (placa ${p.placa ?? '—'}). Se fija el estado de salida, la fecha y queda constancia en sus notas. Su historial y expediente se conservan.`),
+    field('Estado de salida', f.estado),
+    field('Fecha de salida', f.fecha),
+    el('label', { class: 'field full' }, [el('span', {}, 'Motivo'), f.motivo]),
+    el('div', { class: 'row gap end full' }, [
+      el('button', { class: 'btn ghost', onClick: closeModal }, 'Cancelar'),
+      el('button', { class: 'btn danger', onClick: confirmar }, 'Dar de baja'),
+    ]),
+  ]);
+  modal('Dar de baja — ' + p.nombre, body, { wide: true });
 }
 
 // ----------------------------- Historial disciplinario ---------------------
