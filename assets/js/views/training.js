@@ -1,4 +1,4 @@
-import { getState, esDirectiva, addPregunta, updatePregunta, removePregunta, removeIntento } from '../store.js';
+import { getState, esDirectiva, addPregunta, updatePregunta, removePregunta, removeIntento, updateExamenConfig } from '../store.js';
 import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { render } from '../router.js';
@@ -40,6 +40,8 @@ export function viewTraining() {
         ]),
       ]),
     ]),
+
+    configCard(s),
 
     el('div', { class: 'grid kpis' }, [
       kpi('Intentos', intentos.length, `${enviados} enviados`, 'gold', 'training'),
@@ -102,6 +104,57 @@ export function viewTraining() {
           ] : null),
         ]))),
       ]),
+    ]),
+  ]);
+}
+
+function configCard(s) {
+  const cfg = s.examenConfig || { faciles: 10, medias: 10, dificiles: 6, duracion_min: 20 };
+  const act = s.examenPreguntas.filter((q) => q.activa);
+  const disp = {
+    facil: act.filter((q) => q.dificultad === 'facil').length,
+    media: act.filter((q) => q.dificultad === 'media').length,
+    dificil: act.filter((q) => q.dificultad === 'dificil' || q.dificultad === 'muydificil').length,
+  };
+  const total = (cfg.faciles || 0) + (cfg.medias || 0) + (cfg.dificiles || 0);
+  const puede = esDirectiva();
+
+  const f = {};
+  const num = (k, v, max) => (f[k] = el('input', { type: 'number', min: '0', max: String(max), value: String(v), disabled: puede ? null : '' }));
+
+  const tier = (label, key, val, dispN, kind) => el('div', { class: 'cfg-tier' }, [
+    el('div', { class: 'row between' }, [el('span', { class: 'arm-h', style: 'margin:0' }, label),
+      el('span', { class: `badge ${kind}` }, `${dispN} disponibles`)]),
+    num(key, val, dispN),
+  ]);
+
+  async function guardar() {
+    const data = {
+      faciles: Math.min(+f.faciles.value || 0, disp.facil),
+      medias: Math.min(+f.medias.value || 0, disp.media),
+      dificiles: Math.min(+f.dificiles.value || 0, disp.dificil),
+      duracion_min: Math.max(1, +f.duracion.value || 20),
+    };
+    try { await updateExamenConfig(data); toast('Configuración guardada'); render(); }
+    catch (e) { toast(e.message, 'err'); }
+  }
+
+  return el('div', { class: 'card' }, [
+    el('div', { class: 'card-head' }, [el('h3', { class: 'h-ico' }, [icon('scan', 16), 'Configuración del examen']),
+      el('span', { class: 'muted small' }, puede ? 'Ajustable por la Training Division (Directive+)' : 'Definido por la Training Division')]),
+    el('p', { class: 'muted small', style: 'margin-top:0' }, 'Define cuántas preguntas de cada dificultad entran en el examen (de fácil a difícil) y la duración. El examen se arma al azar respetando estos cupos.'),
+    el('div', { class: 'cfg-grid' }, [
+      tier('Fáciles', 'faciles', cfg.faciles, disp.facil, 'ok'),
+      tier('Medias', 'medias', cfg.medias, disp.media, 'warn'),
+      tier('Difíciles', 'dificiles', cfg.dificiles, disp.dificil, 'red'),
+      el('div', { class: 'cfg-tier' }, [
+        el('span', { class: 'arm-h', style: 'margin:0' }, 'Duración (min)'),
+        (f.duracion = el('input', { type: 'number', min: '1', value: String(cfg.duracion_min), disabled: puede ? null : '' })),
+      ]),
+    ]),
+    el('div', { class: 'row between', style: 'margin-top:12px' }, [
+      el('span', { class: 'muted small' }, `Total por examen: ${total} preguntas`),
+      puede ? el('button', { class: 'btn gold small', onClick: guardar }, 'Guardar configuración') : null,
     ]),
   ]);
 }

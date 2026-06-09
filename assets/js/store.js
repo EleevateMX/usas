@@ -19,6 +19,7 @@ let state = {
   perfiles: [],
   examenPreguntas: [],
   examenIntentos: [],
+  examenConfig: { faciles: 10, medias: 10, dificiles: 6, duracion_min: 20 },
   meta: { nombreFaccion: 'U.S. Marshals Service' },
 };
 
@@ -89,7 +90,7 @@ function computeContadores() {
 
 // ------------------------------ Carga total --------------------------------
 export async function loadAll() {
-  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos] = await Promise.all([
+  const [personal, finanzas, normativa, casos, sanciones, perfiles, preguntas, intentos, config] = await Promise.all([
     supabase.from('personal').select('*').order('nombre'),
     supabase.from('finanzas').select('*').order('fecha', { ascending: false }),
     supabase.from('normativa').select('*').order('orden'),
@@ -98,6 +99,7 @@ export async function loadAll() {
     supabase.from('perfiles').select('*').order('created_at'),
     supabase.from('examen_preguntas').select('*').order('categoria'),
     supabase.from('examen_intentos').select('id, nombre, discord, created_at, puntaje, total, aprobado, estado, duracion_seg').order('created_at', { ascending: false }),
+    supabase.from('examen_config').select('*').eq('id', 1).single(),
   ]);
   state.personal = (personal.data || []).map(mapPersona);
   state.finanzas = (finanzas.data || []).map(mapMov);
@@ -107,6 +109,7 @@ export async function loadAll() {
   state.perfiles = (perfiles.data || []).map(mapPerfil);
   state.examenPreguntas = (preguntas.data || []).map(mapPregunta);
   state.examenIntentos = (intentos.data || []).map(mapIntento);
+  if (config.data) state.examenConfig = config.data;
   computeContadores();
   notify();
 }
@@ -328,6 +331,14 @@ export async function removePregunta(id) {
 }
 export async function removeIntento(id) {
   const { error } = await supabase.from('examen_intentos').delete().eq('id', id);
+  if (error) throw error;
+  await loadAll();
+}
+export async function updateExamenConfig(cfg) {
+  const { error } = await supabase.from('examen_config').update({
+    faciles: cfg.faciles, medias: cfg.medias, dificiles: cfg.dificiles,
+    duracion_min: cfg.duracion_min, updated_at: new Date().toISOString(),
+  }).eq('id', 1);
   if (error) throw error;
   await loadAll();
 }

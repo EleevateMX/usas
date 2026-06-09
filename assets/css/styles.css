@@ -449,3 +449,9 @@ input:focus, select:focus, textarea:focus, .search:focus { box-shadow: 0 0 0 3px
 .kv-k { font-family: 'Oswald'; font-weight: 600; color: var(--gold-soft); min-width: 92px; }
 .kv-v { color: #cdd6e6; }
 @media (max-width: 760px) { .arm-cols, .comm-cols { grid-template-columns: 1fr; } }
+
+/* Training — configuración del examen */
+.cfg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.cfg-tier { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--navy-850); }
+.cfg-tier input { text-align: center; font-family: 'Oswald'; font-size: 18px; }
+@media (max-width: 760px) { .cfg-grid { grid-template-columns: 1fr 1fr; } }

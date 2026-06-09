@@ -59,7 +59,7 @@ cuentas ya confirmadas; el primer registro es el bootstrap del Director.
 | **Asuntos Internos (OPR)** | Describe el reporte → el sistema **delimita los artículos vulnerados** con su rango de sanción. Exporta el **explanatory** en texto (Art. 86). |
 | **Normativa** | Catálogo editable de ~124 artículos (Libros I–V). Edición restringida a Directive+. |
 | **Referencia** | Apartado de consulta: misión y lema, rangos (DUSMT → DUSM I-IV → SDUSM → CDUSM → U.S. Marshal), divisiones (IOD, SOG, UMD, AOD, TD, SGU, RAD, OPA, OPR), flota de ~28 unidades, **armamento** (letal/no letal por rango, ROE y escalado de fuerza) y **comunicaciones** (códigos 10, claves, nomenclaturas y abreviaciones). Extraído de los manuales oficiales. |
-| **Training Division** | Examen teórico AMTP para aspirantes (DUSMT): link público de registro, 26 preguntas de opción múltiple, 20 min con autoenvío, respuestas que se bloquean al marcarse y **corrección en el servidor** (las respuestas correctas nunca salen al cliente). Resultados, lista de aspirantes y banco de preguntas editable (Directive+). |
+| **Training Division** | Examen teórico AMTP para aspirantes (DUSMT): link público de registro, opción múltiple, autoenvío al agotar el tiempo, respuestas que se bloquean al marcarse y **corrección en el servidor** (las respuestas correctas nunca salen al cliente). **Configurable por la TD**: cuántas preguntas de cada dificultad (fácil/media/difícil) y la duración. Resultados, lista de aspirantes y banco de ~90 preguntas editable (Directive+). |
 | **Miembros** | Gestión de cuentas y roles (solo Executive/Director). |
 | **Respaldo** | Exporta una copia JSON de todos los datos. |
 
