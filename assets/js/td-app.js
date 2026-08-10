@@ -43,13 +43,13 @@ function buildUser() {
   );
 }
 
-function vistaSinAcceso() {
+function vistaSinAcceso(msg) {
   byId('td-nav').innerHTML = '';
   buildUser();
   const app = byId('app');
   app.innerHTML = '';
   app.append(el('div', { class: 'view' }, [
-    el('div', { class: 'card empty' }, 'No tienes acceso a la Training Division. Pide a un Director que te asigne la división “Training Division”.'),
+    el('div', { class: 'card empty' }, msg || 'No tienes acceso a la Training Division. Pide a un Director que te asigne la división “Training Division”.'),
   ]));
   hideLoader();
 }
@@ -62,6 +62,7 @@ async function enter() {
   try { await loadPerfil(); await loadAll(); }
   catch (e) { toast('Error al cargar datos: ' + e.message, 'err'); }
 
+  if (getState().perfil?.activo === false) { vistaSinAcceso('Tu acceso fue dado de baja. Contacta a la Directiva para reactivarlo.'); return; }
   if (!esTD()) { vistaSinAcceso(); return; }
 
   buildNav();

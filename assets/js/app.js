@@ -74,6 +74,7 @@ async function enterApp() {
   elById('shell').style.display = 'flex';
   try {
     await loadPerfil();
+    if (getState().perfil?.activo === false) { mostrarBaja(); return; }
     await loadAll();
   } catch (e) {
     toast('Error al cargar datos: ' + e.message, 'err');
@@ -111,6 +112,27 @@ async function enterApp() {
   elById('nav')?.addEventListener('click', () => setMenu(false));
 
   buildInstall();
+}
+
+// -------- Acceso revocado (miembro dado de baja) --------
+function mostrarBaja() {
+  const p = getState().perfil;
+  elById('shell').style.display = 'none';
+  const gate = elById('gate');
+  gate.style.display = 'grid';
+  gate.innerHTML = '';
+  gate.append(el('div', { class: 'lv' }, [
+    el('div', { class: 'lv-form', style: 'grid-column:1/-1' }, [
+      el('div', { class: 'lv-form-inner' }, [
+        el('div', { class: 'lv-seal-sm', style: 'display:flex' }, [sealImg(56)]),
+        el('div', { class: 'lv-kicker' }, 'Acceso revocado'),
+        el('h1', { class: 'lv-h' }, 'Cuenta dada de baja'),
+        el('p', { class: 'lv-p muted small' }, `${p?.nombre || p?.email || ''}, tu acceso al Centro de Mando fue dado de baja. Si crees que es un error, contacta a la Directiva para reactivarlo.`),
+        el('button', { class: 'btn gold full', onClick: async () => { await signOut(); location.reload(); } }, 'Cerrar sesión'),
+      ]),
+    ]),
+  ]));
+  hideLoader();
 }
 
 // --------------------------- Instalación PWA -------------------------------

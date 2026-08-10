@@ -26,9 +26,9 @@ export function viewMiembros() {
     el('div', { class: 'card no-pad' }, [
       el('table', { class: 'tbl rows' }, [
         el('thead', {}, el('tr', {}, [
-          el('th', {}, 'Miembro'), el('th', {}, 'Correo'), el('th', {}, 'Rol'), el('th', {}, 'Divisiones'), el('th', {}, ''),
+          el('th', {}, 'Miembro'), el('th', {}, 'Correo'), el('th', {}, 'Rol'), el('th', {}, 'Divisiones'), el('th', {}, 'Estado'), el('th', {}, ''),
         ])),
-        el('tbody', {}, s.perfiles.map((p) => el('tr', {}, [
+        el('tbody', {}, s.perfiles.map((p) => el('tr', { class: p.activo === false ? 'row-baja' : '' }, [
           el('td', {}, [el('strong', {}, p.nombre || '—'), p.id === yo?.id ? badge(' tú', 'ok') : null]),
           el('td', { class: 'muted' }, p.email),
           el('td', {}, admin && p.id !== yo?.id ? rolSelect(p) : badge(p.rol, 'rango')),
@@ -38,10 +38,20 @@ export function viewMiembros() {
               : [el('span', { class: 'muted small' }, '—')]),
             director ? el('button', { class: 'icon-btn', title: 'Editar divisiones (solo Director)', onClick: () => openDivisiones(p) }, [icon('edit', 14)]) : null,
           ]),
-          el('td', { class: 'right' }, admin && p.id !== yo?.id
-            ? el('button', { class: 'icon-btn', title: 'Eliminar perfil', onClick: () =>
-                confirmDialog(`¿Eliminar el perfil de ${p.nombre || p.email}? (No borra su cuenta de acceso)`,
-                  async () => { try { await removePerfil(p.id); toast('Perfil eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)])
+          el('td', {}, p.activo === false ? badge('Baja', 'red') : badge('Activo', 'ok')),
+          el('td', { class: 'right nowrap' }, admin && p.id !== yo?.id
+            ? [
+                el('button', { class: 'icon-btn', title: p.activo === false ? 'Reactivar acceso' : 'Dar de baja (revocar acceso)', onClick: () =>
+                    confirmDialog(
+                      p.activo === false
+                        ? `¿Reactivar el acceso de ${p.nombre || p.email}?`
+                        : `¿Dar de baja a ${p.nombre || p.email}? Perderá el acceso al panel hasta que se reactive.`,
+                      async () => { try { await updatePerfil(p.id, { activo: p.activo === false }); toast(p.activo === false ? 'Acceso reactivado' : 'Miembro dado de baja'); render(); } catch (e) { toast(e.message, 'err'); } }) },
+                  [icon(p.activo === false ? 'undo' : 'logout', 16)]),
+                el('button', { class: 'icon-btn', title: 'Eliminar perfil', onClick: () =>
+                    confirmDialog(`¿Eliminar el perfil de ${p.nombre || p.email}? (No borra su cuenta de acceso)`,
+                      async () => { try { await removePerfil(p.id); toast('Perfil eliminado'); render(); } catch (e) { toast(e.message, 'err'); } }) }, [icon('trash', 16)]),
+              ]
             : null),
         ]))),
       ]),
