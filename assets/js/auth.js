@@ -54,28 +54,47 @@ export async function viewLogin(onDone) {
     el('div', { class: 'auth-input' }, [icon(ic, 16), input]),
   ]);
 
-  const card = el('div', { class: 'auth-card' }, [
-    el('div', { class: 'auth-brand' }, [
-      sealImg(104),
-      el('div', { class: 'brand-title xl' }, 'U.S. MARSHALS SERVICE'),
-      el('div', { class: 'brand-sub' }, 'San Andreas · Centro de Mando'),
-    ]),
-    el('div', { class: 'auth-divider' }, [el('span', {}, iniciado ? 'ACCESO AUTORIZADO' : 'PRIMER ACCESO')]),
-    el('p', { class: 'muted small center' }, iniciado
-      ? 'Acceso para Directiva (U.S. Marshal) y Supervisory Staff (CDUSM · SDUSM II · SDUSM I).'
-      : 'Crea la cuenta del Director de la agencia para inicializar el sistema.'),
-    el('div', { class: 'auth-form' }, [
-      field('Correo', 'user', email),
-      iniciado ? null : field('Nombre', 'personal', nombre),
-      field('Contraseña', 'shield', pass),
-      btn,
-    ]),
-    el('div', { class: 'auth-foot' }, 'GTAHUB Roleplay · Uso interno y confidencial'),
+  const lema = el('div', { class: 'lv-lema' }, [
+    el('span', {}, 'Justicia'), el('span', {}, 'Integridad'), el('span', {}, 'Servicio'),
   ]);
+  const features = el('ul', { class: 'lv-features' }, [
+    ['personal', 'Personal, tesorería y asuntos internos'],
+    ['training', 'Training Division y academias'],
+    ['star', 'Ascensos, divisiones y normativa'],
+  ].map(([ic, t]) => el('li', {}, [icon(ic, 15), el('span', {}, t)])));
 
-  const host = el('div', { class: 'auth-wrap' }, [
-    el('div', { class: 'aurora' }, [el('span', { class: 'a1' }), el('span', { class: 'a2' }), el('span', { class: 'a3' })]),
-    card,
+  const host = el('div', { class: 'lv' }, [
+    // ---- Panel de marca (izquierda) ----
+    el('div', { class: 'lv-brand' }, [
+      el('div', { class: 'aurora' }, [el('span', { class: 'a1' }), el('span', { class: 'a2' }), el('span', { class: 'a3' })]),
+      el('div', { class: 'lv-brand-inner' }, [
+        el('div', { class: 'lv-seal' }, [sealImg(104)]),
+        el('div', { class: 'lv-title' }, 'U.S. MARSHALS SERVICE'),
+        el('div', { class: 'lv-sub' }, 'San Andreas · Centro de Mando'),
+        lema,
+        features,
+      ]),
+      el('div', { class: 'lv-brand-foot' }, 'GTAHUB Roleplay · Uso interno y confidencial'),
+    ]),
+
+    // ---- Panel de acceso (derecha) ----
+    el('div', { class: 'lv-form' }, [
+      el('div', { class: 'lv-form-inner' }, [
+        el('div', { class: 'lv-seal-sm' }, [sealImg(56)]),
+        el('div', { class: 'lv-kicker' }, iniciado ? 'Acceso autorizado' : 'Primer acceso'),
+        el('h1', { class: 'lv-h' }, iniciado ? 'Bienvenido de vuelta' : 'Inicializar sistema'),
+        el('p', { class: 'lv-p muted small' }, iniciado
+          ? 'Acceso para Directiva (U.S. Marshal) y Supervisory Staff (CDUSM · SDUSM II · SDUSM I).'
+          : 'Crea la cuenta del Director de la agencia para inicializar el sistema.'),
+        el('div', { class: 'lv-fields' }, [
+          field('Correo', 'user', email),
+          iniciado ? null : field('Nombre', 'personal', nombre),
+          field('Contraseña', 'shield', pass),
+          btn,
+        ]),
+        el('div', { class: 'lv-form-foot muted xsmall' }, 'Uso interno y confidencial · USMS'),
+      ]),
+    ]),
   ]);
   [email, nombre, pass].forEach((i) => i && i.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); }));
 

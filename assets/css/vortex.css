@@ -1,0 +1,67 @@
+/* ===========================================================================
+   USMS Control — Login estilo "Vortex" (split marca/acceso) + centro de
+   notificaciones. Depende de los tokens de styles.css (cargado antes).
+   =========================================================================== */
+
+/* ------------------------------ Login split ------------------------------- */
+.lv { display: grid; grid-template-columns: 1.05fr .95fr; min-height: 100vh; min-height: 100dvh; }
+
+.lv-brand {
+  position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;
+  padding: 42px 46px; border-right: 1px solid var(--line);
+  background: linear-gradient(150deg, var(--navy-700), var(--navy-900));
+}
+.lv-brand-inner { position: relative; z-index: 1; margin: auto 0; max-width: 470px; }
+.lv-seal { margin-bottom: 18px; }
+.lv-seal .seal-img { display: block; filter: drop-shadow(0 8px 24px rgba(0,0,0,.4)); }
+.lv-title { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 1.2px; }
+.lv-sub { color: var(--muted); margin-top: 5px; letter-spacing: .5px; }
+.lv-lema { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+.lv-lema span {
+  font-family: 'Oswald', sans-serif; letter-spacing: 1px; font-size: 12px; text-transform: uppercase;
+  color: var(--gold); border: 1px solid rgba(217,181,61,.45); border-radius: 99px; padding: 4px 14px; background: rgba(217,181,61,.08);
+}
+.lv-features { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 11px; }
+.lv-features li { display: flex; align-items: center; gap: 11px; color: var(--muted); font-size: 14px; }
+.lv-features .ico { color: var(--gold-soft); flex-shrink: 0; }
+.lv-brand-foot { position: relative; z-index: 1; color: var(--muted); font-size: 12px; letter-spacing: .3px; }
+
+.lv-form { display: flex; align-items: center; justify-content: center; padding: 40px 32px; background: var(--navy-900); }
+.lv-form-inner { width: min(380px, 100%); }
+.lv-seal-sm { display: none; justify-content: center; margin-bottom: 16px; }
+.lv-kicker { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-soft); }
+.lv-h { font-size: 27px; margin: 5px 0 6px; }
+.lv-p { margin: 0 0 22px; }
+.lv-fields { display: flex; flex-direction: column; gap: 14px; }
+.lv-form-foot { text-align: center; margin-top: 20px; }
+
+@media (max-width: 860px) {
+  .lv { grid-template-columns: 1fr; }
+  .lv-brand { display: none; }
+  .lv-seal-sm { display: flex; }
+  .lv-form { min-height: 100vh; min-height: 100dvh; }
+}
+
+/* --------------------------- Centro de notificaciones --------------------- */
+.icon-btn.bell { position: relative; }
+.noti-badge {
+  position: absolute; top: -3px; right: -3px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 99px; background: var(--red); color: #fff; font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; border: 2px solid var(--navy-850);
+}
+.notif-menu {
+  position: fixed; top: 56px; right: 16px; width: min(348px, calc(100vw - 24px)); z-index: 1500;
+  background: var(--navy-850); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+}
+.notif-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px; border-bottom: 1px solid var(--line); }
+.notif-list { max-height: 52vh; overflow-y: auto; padding: 6px; }
+.notif-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; color: var(--text); }
+.notif-item:hover { background: var(--navy-700); }
+.notif-ico { display: flex; flex-shrink: 0; }
+.notif-ico.red { color: var(--red); } .notif-ico.warn { color: var(--amber); } .notif-ico.gold { color: var(--gold); }
+.notif-txt { flex: 1; min-width: 0; font-size: 14px; }
+.notif-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 18px; color: var(--muted); text-align: center; }
+.notif-empty .ico { color: var(--green); }
+.notif-empty p { margin: 0; }
+.notif-push { padding: 10px 12px; border-top: 1px solid var(--line); }
+.notif-push .btn.on { color: var(--gold); border-color: rgba(217,181,61,.4); background: rgba(217,181,61,.08); }
