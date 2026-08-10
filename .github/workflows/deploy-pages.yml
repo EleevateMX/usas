@@ -29,6 +29,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Se publica solo la versión ofuscada (assets/prod). El código fuente
+      # legible y el tooling de build se excluyen del sitio desplegado.
+      - name: Excluir código fuente legible del artefacto
+        run: rm -rf assets/js build.mjs package.json package-lock.json
+
       - name: Configurar Pages
         uses: actions/configure-pages@v5
 

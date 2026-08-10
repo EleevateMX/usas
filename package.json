@@ -1,0 +1,13 @@
+{
+  "name": "usms-control",
+  "version": "1.0.0",
+  "private": true,
+  "description": "USMS Control — build de bundles ofuscados para producción",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "javascript-obfuscator": "^5.5.0"
+  }
+}
