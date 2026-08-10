@@ -104,16 +104,33 @@ function showGate() {
   }
   [email, pass].forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); }));
 
-  gate.append(el('div', { class: 'auth-wrap' }, [
-    el('div', { class: 'aurora' }, [el('span', { class: 'a1' }), el('span', { class: 'a2' }), el('span', { class: 'a3' })]),
-    el('div', { class: 'auth-card' }, [
-      el('div', { class: 'auth-brand' }, [sealImg(96),
-        el('div', { class: 'brand-title xl' }, 'TRAINING DIVISION'),
-        el('div', { class: 'brand-sub' }, 'Consola de instructores')]),
-      el('div', { class: 'auth-divider' }, [el('span', {}, 'ACCESO TD')]),
-      el('p', { class: 'muted small center' }, 'Acceso exclusivo para el personal de la Training Division. Usa tu mismo correo y contraseña del panel.'),
-      el('div', { class: 'auth-form' }, [field('Correo', 'user', email), field('Contraseña', 'shield', pass), btn]),
-      el('div', { class: 'auth-foot' }, 'U.S. Marshals Service · GTAHUB Roleplay'),
+  const features = el('ul', { class: 'lv-features' }, [
+    ['award', 'Academias y aspirantes'],
+    ['training', 'Programa día a día y manuales'],
+    ['file', 'Exámenes, asistencia y seguimiento'],
+  ].map(([ic, t]) => el('li', {}, [icon(ic, 15), el('span', {}, t)])));
+
+  gate.append(el('div', { class: 'lv' }, [
+    el('div', { class: 'lv-brand' }, [
+      el('div', { class: 'aurora' }, [el('span', { class: 'a1' }), el('span', { class: 'a2' }), el('span', { class: 'a3' })]),
+      el('div', { class: 'lv-brand-inner' }, [
+        el('div', { class: 'lv-seal' }, [sealImg(104)]),
+        el('div', { class: 'lv-title' }, 'TRAINING DIVISION'),
+        el('div', { class: 'lv-sub' }, 'U.S. Marshals · Consola de instructores'),
+        el('div', { class: 'lv-lema' }, [el('span', {}, 'Justicia'), el('span', {}, 'Integridad'), el('span', {}, 'Servicio')]),
+        features,
+      ]),
+      el('div', { class: 'lv-brand-foot' }, 'GTAHUB Roleplay · Uso interno y confidencial'),
+    ]),
+    el('div', { class: 'lv-form' }, [
+      el('div', { class: 'lv-form-inner' }, [
+        el('div', { class: 'lv-seal-sm' }, [sealImg(56)]),
+        el('div', { class: 'lv-kicker' }, 'Acceso TD'),
+        el('h1', { class: 'lv-h' }, 'Consola de instructores'),
+        el('p', { class: 'lv-p muted small' }, 'Acceso exclusivo para el personal de la Training Division. Usa tu mismo correo y contraseña del panel.'),
+        el('div', { class: 'lv-fields' }, [field('Correo', 'user', email), field('Contraseña', 'shield', pass), btn]),
+        el('div', { class: 'lv-form-foot muted xsmall' }, 'U.S. Marshals Service · GTAHUB Roleplay'),
+      ]),
     ]),
   ]));
   hideLoader();

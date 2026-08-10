@@ -27,9 +27,9 @@ export async function cambiarPassword(password) {
   if (error) throw error;
 }
 // Crea un miembro vía Edge Function (bootstrap del Director o alta por admin).
-export async function crearMiembro({ email, password, nombre, rol }) {
+export async function crearMiembro({ email, password, nombre, rol, divisiones }) {
   const { data, error } = await supabase.functions.invoke('crear-miembro', {
-    body: { email, password, nombre, rol },
+    body: { email, password, nombre, rol, divisiones },
   });
   if (error) {
     let msg = error.message;
