@@ -3,6 +3,7 @@ import { el, field, modal, closeModal, confirmDialog, toast, badge, fmtMoney, fm
 import { icon } from '../icons.js';
 import { render } from '../router.js';
 import { exportarFinanzasCSV } from '../export.js';
+import { barrasTesoreria } from '../charts.js';
 
 export const nuevoMovimiento = () => openForm();
 const CATEGORIAS = ['General', 'Salarios', 'Unidades', 'Armamento', 'Multas', 'Operativos', 'Capacitaciones', 'Donaciones', 'Mantenimiento'];
@@ -20,6 +21,12 @@ export function viewFinanzas() {
     porCat[m.categoria][m.tipo === 'ingreso' ? 'ing' : 'egr'] += +m.monto;
   });
 
+  // Serie mensual (últimos 6 meses) para la gráfica de ingresos/egresos.
+  const meses = {};
+  movs.forEach((m) => { const k = (m.fecha || '').slice(0, 7); if (!k) return; meses[k] = meses[k] || { ing: 0, egr: 0 }; meses[k][m.tipo === 'ingreso' ? 'ing' : 'egr'] += +m.monto; });
+  const mk = Object.keys(meses).sort().slice(-6);
+  const serie = { labels: mk.map(mesCorto), ing: mk.map((k) => meses[k].ing), egr: mk.map((k) => meses[k].egr) };
+
   return el('div', { class: 'view' }, [
     el('div', { class: 'toolbar' }, [
       el('h2', {}, 'Tesorería — Ingresos / Egresos'),
@@ -33,6 +40,14 @@ export function viewFinanzas() {
       el('div', { class: 'card kpi green' }, [el('div', { class: 'kpi-val' }, fmtMoney(ingresos)), el('div', { class: 'kpi-label' }, 'Ingresos')]),
       el('div', { class: 'card kpi red' }, [el('div', { class: 'kpi-val' }, fmtMoney(egresos)), el('div', { class: 'kpi-label' }, 'Egresos')]),
       el('div', { class: 'card kpi gold' }, [el('div', { class: 'kpi-val' }, fmtMoney(balance())), el('div', { class: 'kpi-label' }, 'Balance actual')]),
+    ]),
+
+    el('div', { class: 'card' }, [
+      el('div', { class: 'card-head' }, [
+        el('h3', { class: 'h-ico' }, [icon('finanzas', 17), 'Ingresos vs. egresos · últimos meses']),
+        el('span', { class: 'muted small' }, mk.length ? `Balance actual ${fmtMoney(balance())}` : ''),
+      ]),
+      mk.length ? barrasTesoreria(serie) : el('p', { class: 'muted' }, 'Aún no hay movimientos para graficar.'),
     ]),
 
     el('div', { class: 'grid two' }, [
@@ -81,6 +96,10 @@ export function viewFinanzas() {
 }
 
 const pct = (v, total) => (total > 0 ? Math.round((v / total) * 100) : 0);
+function mesCorto(k) {
+  try { return new Date(k + '-01T00:00:00Z').toLocaleDateString('es-MX', { month: 'short', timeZone: 'UTC' }); }
+  catch { return k; }
+}
 
 function openForm(m = null) {
   const edit = !!m; const d = m || {}; const f = {};
